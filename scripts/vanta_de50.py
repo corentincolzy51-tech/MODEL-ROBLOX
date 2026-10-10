@@ -61,16 +61,16 @@ WEAPON = Weapon(
     key="de50", folder="VANTA_DE-50", file_prefix="Deagle", pieces=pieces,
     target=(1.25, None, 0.856), grip=GRIP_POINT, contour=0.016, flower_scale=0.45,
     zones={
-        "stock": (0.06, 0.71, 0.45, 0.92),
-        "receiver": (0.06, 0.71, 1.17, 0.92),
-        "handguard": (0.14, 0.58, 1.14, 0.70),
-        "grip": (0.03, 0.08, 0.33, 0.55),
-        "mag": (0.05, 0.10, 0.30, 0.45),
+        "stock": (0.06, 0.71, 0.40, 0.92),      # arrière de la culasse
+        "receiver": (0.42, 0.71, 1.17, 0.92),   # culasse
+        "handguard": (0.14, 0.58, 1.14, 0.70),  # carcasse
+        "grip": (0.08, 0.32, 0.33, 0.55),       # haut de la poignée
+        "mag": (0.02, 0.08, 0.28, 0.30),        # bas de la poignée / chargeur
         "band": (0.0, 0.58, 1.2, 0.93),
         "bouquet": (0.03, 0.10, 0.32, 0.52),
         "branch": ((0.10, 0.78), (1.12, 0.86)),
         "top_band_z": 0.82,
     },
     label="DE-50",
-    emblem=(0.18, 0.30, 0.16),
+    emblem=(0.16, 0.19, 0.13),
 )

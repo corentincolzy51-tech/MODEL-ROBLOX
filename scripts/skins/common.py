@@ -54,6 +54,7 @@ class Ctx:
         self.zones = dict(ZONES)
         self.emblem = EMBLEM
         self.flower_scale = 1.0
+        self.label = "AR-01"
 
     # ---- conversions
     def P(self, x, z):
@@ -65,6 +66,40 @@ class Ctx:
     def box(self, x0, z0, x1, z1):
         (a, b), (c, d) = self.P(x0, z1), self.P(x1, z0)
         return [a, b, c, d]
+
+    # ---- placement relatif aux zones de l'arme
+    @property
+    def ds(self):
+        """Échelle des détails (1 pour l'AR-01, plus petit pour les armes compactes)."""
+        return self.flower_scale
+
+    def at(self, zone, u, v):
+        """Point à la fraction (u, v) de la zone (0,0 = bas gauche, 1,1 = haut droit)."""
+        x0, z0, x1, z1 = self.zones[zone]
+        return x0 + u * (x1 - x0), z0 + v * (z1 - z0)
+
+    def zw(self, zone):
+        x0, _, x1, _ = self.zones[zone]
+        return x1 - x0
+
+    def zh(self, zone):
+        _, z0, _, z1 = self.zones[zone]
+        return z1 - z0
+
+    def extent(self, margin=0.08):
+        """Rectangle qui englobe toutes les zones (studs)."""
+        rects = [v for k, v in self.zones.items() if isinstance(v, tuple) and len(v) == 4 and k != "branch"]
+        return (min(r[0] for r in rects) - margin, min(r[1] for r in rects) - margin,
+                max(r[2] for r in rects) + margin, max(r[3] for r in rects) + margin)
+
+    def rand_extent(self):
+        x0, z0, x1, z1 = self.extent()
+        return self.rng.uniform(x0, x1), self.rng.uniform(z0, z1)
+
+    def emblem_in(self, zone):
+        x, z, _ = self.emblem
+        x0, z0, x1, z1 = self.zones[zone]
+        return x0 <= x <= x1 and z0 <= z <= z1
 
     def rand_in(self, zone):
         x0, z0, x1, z1 = self.zones[zone] if isinstance(zone, str) else zone
@@ -150,7 +185,7 @@ def triangle_emblem(ctx, color, outline=(10, 8, 12), inner=None, width=0.035, gl
     outer = [ctx.P(cx - s * 0.62, cz + s * 0.45), ctx.P(cx + s * 0.62, cz + s * 0.45), ctx.P(cx, cz - s * 0.62)]
     mid = [ctx.P(cx - s * 0.36, cz + s * 0.26), ctx.P(cx + s * 0.36, cz + s * 0.26), ctx.P(cx, cz - s * 0.33)]
     small = [ctx.P(cx - s * 0.17, cz + s * 0.13), ctx.P(cx + s * 0.17, cz + s * 0.13), ctx.P(cx, cz - s * 0.12)]
-    w = int(ctx.L(width))
+    w = int(ctx.L(width * ctx.ds))
     d.polygon(outer, fill=rgba(outline))
     d.polygon(_shrink(outer, w * 0.45), fill=rgba(color))
     d.polygon(mid, fill=rgba(outline))

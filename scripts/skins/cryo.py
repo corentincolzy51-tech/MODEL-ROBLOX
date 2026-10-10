@@ -59,48 +59,55 @@ def snowflake(ctx, d, x, z, r, color, width):
 
 
 def paint(ctx):
-    rng = ctx.rng
-    ctx.vgradient(ICE_L, ICE_D, z_top=1.1, z_bottom=0.15)
-    shade, edge = _voronoi(ctx)
+    rng, ds = ctx.rng, ctx.ds
+    ex0, ez0, ex1, ez1 = ctx.extent()
+    ctx.vgradient(ICE_L, ICE_D, z_top=ez1, z_bottom=ez0 + 0.1 * (ez1 - ez0))
+    shade, edge = _voronoi(ctx, cells_per_stud=8 / ds)
     ctx.tint(ICE_L, np.clip(shade - 0.45, 0, 1) * 1.6, 0.85)    # faces éclairées
     ctx.tint((40, 105, 190), np.clip(0.4 - shade, 0, 1) * 1.8, 0.65)  # faces dans l'ombre
     ctx.tint((255, 255, 255), edge ** 3, 0.9)                     # arêtes brillantes
 
-    # zones de glace plus profonde (bas des pièces) et liserés bleu nuit
-    n = ctx.noise(0.2, 4)
-    lowz = np.clip((np.arange(ctx.H, dtype=np.float32)[:, None] - ctx.P(0, 0.62)[1]) / ctx.L(0.4), 0, 1)
+    # glace plus profonde vers le bas
+    n = ctx.noise(0.2 * ds, 4)
+    zlow = ctx.zones["band"][1]
+    lowz = np.clip((np.arange(ctx.H, dtype=np.float32)[:, None] - ctx.P(0, zlow)[1]) / ctx.L(0.4 * ds), 0, 1)
     ctx.tint((30, 80, 170), lowz * (0.5 + 0.5 * n), 0.55)
-    # givre : petites paillettes blanches
+    # givre : paillettes blanches + fissures
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
     for _ in range(5000):
-        x, z = rng.uniform(0, 3.0), rng.uniform(0.1, 1.1)
-        r = ctx.L(rng.uniform(0.001, 0.0035))
+        x, z = ctx.rand_extent()
+        r = ctx.L(rng.uniform(0.001, 0.0035) * ds)
         px, py = ctx.P(x, z)
         d.ellipse([px - r, py - r, px + r, py + r], fill=(255, 255, 255, rng.randint(120, 255)))
-    # fissures de givre
     for _ in range(26):
         x, z = ctx.rand_in(rng.choice(("receiver", "handguard", "stock", "mag", "grip")))
         pts = [ctx.P(x, z)]
         a = rng.uniform(0, math.tau)
         for _ in range(rng.randint(3, 6)):
             a += rng.uniform(-0.8, 0.8)
-            x += math.cos(a) * 0.03
-            z += math.sin(a) * 0.03
+            x += math.cos(a) * 0.03 * ds
+            z += math.sin(a) * 0.03 * ds
             pts.append(ctx.P(x, z))
         d.line(pts, fill=(255, 255, 255, 210), width=2)
     ctx.over(lay)
 
     # flocons
+    flakes = []
+    for zone, u, v, r in (("receiver", 0.47, 0.5, 0.11), ("handguard", 0.55, 0.55, 0.08), ("mag", 0.5, 0.5, 0.06),
+                          ("handguard", 0.12, 0.25, 0.04), ("receiver", 0.17, 0.8, 0.035),
+                          ("handguard", 0.9, 0.75, 0.035), ("grip", 0.5, 0.5, 0.04), ("stock", 0.85, 0.8, 0.035),
+                          ("receiver", 0.9, 0.25, 0.03)):
+        x, z = ctx.at(zone, u, v)
+        flakes.append((x, z, min(r * ds, 0.4 * ctx.zh(zone), 0.4 * ctx.zw(zone))))
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    for x, z, r in ((1.50, 0.86, 0.11), (2.55, 0.90, 0.08), (1.735, 0.36, 0.06), (2.15, 0.82, 0.04), (1.22, 0.96, 0.035),
-                    (2.86, 0.96, 0.035), (1.19, 0.42, 0.04), (0.60, 0.93, 0.035), (1.95, 0.76, 0.03)):
+    for x, z, r in flakes:
         snowflake(ctx, d, x, z, r, (255, 255, 255), r * 0.09)
-    ctx.glow(lay, 0.012, 0.8)
+    ctx.glow(lay, 0.012 * ds, 0.8)
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    for x, z, r in ((1.50, 0.86, 0.11), (2.55, 0.90, 0.08), (1.735, 0.36, 0.06)):
+    for x, z, r in flakes[:3]:
         snowflake(ctx, d, x, z, r * 0.55, ICE_D, r * 0.05)
     ctx.over(lay)
 
@@ -110,19 +117,22 @@ def paint(ctx):
     for _ in range(14):
         x, z = ctx.rand_in(rng.choice(("receiver", "handguard", "stock", "band")))
         px, py = ctx.P(x, z)
-        L = ctx.L(rng.uniform(0.02, 0.05))
+        L = ctx.L(rng.uniform(0.02, 0.05) * ds)
         d.polygon([(px, py - L), (px + L * 0.12, py), (px, py + L), (px - L * 0.12, py)], fill=(255, 255, 255, 255))
         d.polygon([(px - L, py), (px, py + L * 0.12), (px + L, py), (px, py - L * 0.12)], fill=(255, 255, 255, 255))
-    ctx.glow(lay, 0.01, 0.9)
+    ctx.glow(lay, 0.01 * ds, 0.9)
 
-    # liserés lumineux
+    # liserés lumineux en bas des pièces
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    for (x0, z0), (x1, z1) in (((1.08, 0.70), (1.98, 0.70)), ((2.06, 0.78), (2.92, 0.78)), ((0.16, 0.58), (0.62, 0.86))):
-        d.line([ctx.P(x0, z0), ctx.P(x1, z1)], fill=rgba((120, 220, 255)), width=max(2, int(ctx.L(0.008))))
-    ctx.glow(lay, 0.012, 0.9)
+    for zone in ("receiver", "handguard", "stock"):
+        x0, z0, x1, z1 = ctx.zones[zone]
+        zl = z0 + 0.1 * (z1 - z0)
+        d.line([ctx.P(x0 + 0.02 * ds, zl), ctx.P(x1 - 0.02 * ds, zl)], fill=rgba((120, 220, 255)),
+               width=max(2, int(ctx.L(0.008 * ds))))
+    ctx.glow(lay, 0.012 * ds, 0.9)
 
-    triangle_emblem(ctx, (120, 215, 255), outline=NAVY, glow=0.015)
+    triangle_emblem(ctx, (120, 215, 255), outline=NAVY, glow=0.015 * ds)
     ctx.grain(4)
     return ctx.result()
 

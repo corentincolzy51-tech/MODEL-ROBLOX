@@ -42,7 +42,7 @@ def _scroll(ctx, d, x, z, size, flip=1, col=GOLD, width=0.007):
     d.ellipse([lx - rr, ly - rr, lx + rr, ly + rr], fill=rgba(col))
 
 
-def _panel(ctx, poly_studs, inset=0.018):
+def _panel(ctx, poly_studs, ds=1.0):
     """Panneau laqué rouge avec double liseré doré et volutes aux coins."""
     mask = Image.new("L", (ctx.W, ctx.H), 0)
     md = ImageDraw.Draw(mask)
@@ -62,9 +62,9 @@ def _panel(ctx, poly_studs, inset=0.018):
     d = ImageDraw.Draw(lay)
     # damas sombre dans le panneau
     xs = [x for x, _ in poly_studs]
-    for i, x in enumerate(np.arange(min(xs), max(xs), 0.11)):
-        for j, z in enumerate(np.arange(min(zs), max(zs), 0.1)):
-            _damask(ctx, d, x + (0.055 if j % 2 else 0), z, 0.04, (135, 12, 24))
+    for i, x in enumerate(np.arange(min(xs), max(xs), 0.11 * ds)):
+        for j, z in enumerate(np.arange(min(zs), max(zs), 0.1 * ds)):
+            _damask(ctx, d, x + (0.055 * ds if j % 2 else 0), z, 0.04 * ds, (135, 12, 24))
     clip = Image.new("L", lay.size, 0)
     ImageDraw.Draw(clip).polygon(poly, fill=255)
     lay.putalpha(Image.fromarray(np.minimum(np.asarray(lay.getchannel("A")), np.asarray(clip))))
@@ -72,7 +72,7 @@ def _panel(ctx, poly_studs, inset=0.018):
 
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    w = max(2, int(ctx.L(0.012)))
+    w = max(2, int(ctx.L(0.012 * ds)))
     d.line(poly + [poly[0]], fill=rgba(GOLD_D), width=w + 4, joint="curve")
     d.line(poly + [poly[0]], fill=rgba(GOLD), width=w, joint="curve")
     cx = sum(x for x, _ in poly_studs) / len(poly_studs)
@@ -82,48 +82,66 @@ def _panel(ctx, poly_studs, inset=0.018):
     d.line(ip + [ip[0]], fill=rgba(GOLD), width=max(1, w // 2), joint="curve")
     for (x, z) in inner:
         fx = 1 if x < cx else -1
-        _scroll(ctx, d, x + fx * 0.03, z + (0.025 if z < cz else -0.025), 0.028, flip=fx)
+        _scroll(ctx, d, x + fx * 0.03 * ds, z + (0.025 if z < cz else -0.025) * ds, 0.028 * ds, flip=fx,
+                width=0.007 * ds)
     ctx.over(lay)
+
+
+def _inset(ctx, zone, kx=0.06, kz=0.12):
+    x0, z0, x1, z1 = ctx.zones[zone]
+    dx, dz = (x1 - x0) * kx, (z1 - z0) * kz
+    return [(x0 + dx, z0 + dz), (x0 + dx, z1 - dz), (x1 - dx, z1 - dz), (x1 - dx, z0 + dz)]
 
 
 def paint(ctx):
+    ds = ctx.ds
     ctx.fill(BG)
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    for j, z in enumerate(np.arange(0.0, 1.45, 0.11)):
-        for x in np.arange(-0.1, 3.8, 0.13):
-            _damask(ctx, d, x + (0.065 if j % 2 else 0), z, 0.045, DAMASK)
+    ex0, ez0, ex1, ez1 = ctx.extent(0.2)
+    for j, z in enumerate(np.arange(ez0, ez1, 0.11 * ds)):
+        for x in np.arange(ex0, ex1, 0.13 * ds):
+            _damask(ctx, d, x + (0.065 * ds if j % 2 else 0), z, 0.045 * ds, DAMASK)
     ctx.over(lay)
     ctx.grain(5)
 
-    # panneaux laqués
-    _panel(ctx, [(1.12, 0.70), (1.12, 1.00), (1.98, 1.00), (1.98, 0.74), (1.86, 0.70)])
-    _panel(ctx, [(2.08, 0.78), (2.08, 1.01), (2.90, 1.01), (2.90, 0.80)])
-    _panel(ctx, [(0.48, 0.80), (0.52, 0.98), (0.64, 0.96), (0.66, 0.84)])
-    _panel(ctx, [(1.60, 0.54), (1.80, 0.54), (1.87, 0.18), (1.67, 0.18)])
-    _panel(ctx, [(1.10, 0.58), (1.30, 0.58), (1.22, 0.26), (1.07, 0.26)])
+    # panneaux laqués (pas sur la zone de l'emblème)
+    for zone in ("receiver", "handguard", "mag", "grip", "stock"):
+        if not ctx.emblem_in(zone):
+            _panel(ctx, _inset(ctx, zone), ds)
 
     # ornements dorés
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    crown(ctx, d, 1.55, 0.86, 0.15, GOLD, outline=GOLD_D, jewel=(240, 40, 50))
-    crown(ctx, d, 1.735, 0.38, 0.09, GOLD, outline=GOLD_D, jewel=(240, 40, 50))
-    for x0, x1, z in ((1.08, 2.0, 1.035), (2.06, 2.92, 1.04), (0.12, 0.62, 1.01), (1.08, 2.0, 0.68)):
-        for x in np.arange(x0, x1, 0.06):  # rivets dorés
-            px, py = ctx.P(x, z)
-            r = ctx.L(0.008)
-            d.ellipse([px - r, py - r, px + r, py + r], fill=rgba(GOLD), outline=rgba(GOLD_D))
-    # arabesques sur la crosse (autour de l'emblème)
+    crown(ctx, d, *ctx.at("receiver", 0.5, 0.5), min(0.15 * ds, 0.42 * ctx.zh("receiver")), GOLD, outline=GOLD_D,
+          jewel=(240, 40, 50))
+    crown(ctx, d, *ctx.at("mag", 0.5, 0.55), min(0.09 * ds, 0.4 * min(ctx.zw("mag"), ctx.zh("mag"))), GOLD,
+          outline=GOLD_D, jewel=(240, 40, 50))
+    for zone in ("receiver", "handguard", "stock"):
+        x0, z0, x1, z1 = ctx.zones[zone]
+        for zr in ((z1 - 0.012 * ds, ) if zone == "stock" else (z1 - 0.012 * ds, z0 + 0.012 * ds)):
+            for x in np.arange(x0 + 0.02 * ds, x1 - 0.01 * ds, 0.06 * ds):  # rivets dorés
+                px, py = ctx.P(x, zr)
+                r = ctx.L(0.008 * ds)
+                d.ellipse([px - r, py - r, px + r, py + r], fill=rgba(GOLD), outline=rgba(GOLD_D))
+    # arabesques autour de l'emblème
+    ex, ez, es = ctx.emblem
     for k in range(5):
-        _scroll(ctx, d, 0.15 + k * 0.065, 0.965, 0.02, flip=1 if k % 2 else -1, width=0.005)
+        a = math.pi * (0.15 + 0.175 * k)
+        _scroll(ctx, d, ex + math.cos(a) * es * 0.95, ez + math.sin(a) * es * 0.75, 0.02 * ds,
+                flip=1 if k % 2 else -1, width=0.005 * ds)
     ctx.over(lay)
-    text(ctx, "V", 2.49, 0.935, 0.13, GOLD, kind="serif", stroke=GOLD_D, stroke_w=0.006, shadow=(60, 0, 8))
-    text(ctx, "ROYAL", 2.49, 0.865, 0.04, GOLD_L, kind="serif")
+    vx, vz = ctx.at("handguard", 0.5, 0.62)
+    vs = min(0.13 * ds, 0.5 * ctx.zh("handguard"))
+    text(ctx, "V", vx, vz, vs, GOLD, kind="serif", stroke=GOLD_D, stroke_w=0.05 * vs, shadow=(60, 0, 8))
+    text(ctx, "ROYAL", vx, vz - 0.55 * vs, 0.3 * vs, GOLD_L, kind="serif")
 
-    # reflet métallique sur l'or : léger halo clair
+    # reflet métallique en haut
     sheen = ctx.layer()
-    ImageDraw.Draw(sheen).rectangle([0, ctx.P(0, 1.06)[1], ctx.W, ctx.P(0, 0.98)[1]], fill=(255, 220, 160, 26))
-    ctx.over(sheen.filter(ImageFilter.GaussianBlur(ctx.L(0.03))))
+    bx0, bz0, bx1, bz1 = ctx.zones["band"]
+    ImageDraw.Draw(sheen).rectangle([0, ctx.P(0, bz1)[1], ctx.W, ctx.P(0, bz1 - 0.25 * (bz1 - bz0))[1]],
+                                    fill=(255, 220, 160, 26))
+    ctx.over(sheen.filter(ImageFilter.GaussianBlur(ctx.L(0.03 * ds))))
 
     triangle_emblem(ctx, GOLD, outline=(70, 45, 10), inner=RED_L)
     return ctx.result()

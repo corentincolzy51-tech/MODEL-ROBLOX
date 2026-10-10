@@ -5,6 +5,7 @@ Usage :
     python3 scripts/build_skins.py --weapon de50 Sakura    # deagle, skin Sakura
     python3 scripts/build_skins.py --weapon sr7 Royal Toxic
     python3 scripts/build_skins.py --installer             # régénère seulement le script Roblox
+    python3 scripts/build_skins.py --weapon sr7 --zip      # régénère seulement le zip et la galerie
 Armes : ar01 (Phantom), de50 (Deagle), sr7 (Sniper), couteau (Couteau).
 
 Sorties (weapons/<Arme>/<Skin>/) :
@@ -38,7 +39,7 @@ from skins.common import Ctx  # noqa: E402
 WEAPONS = {m.WEAPON.key: m.WEAPON for m in (vanta_ar01, vanta_de50, vanta_sr7, couteau)}
 BAKE_RES, FINAL_RES = 2048, 1024
 # skins déjà installés dans le jeu, à ne pas remettre dans le zip
-ZIP_EXCLUDE = {"ar01": {"Sakura"}}
+ZIP_EXCLUDE = {"ar01": {"Sakura"}, "de50": {"Sakura"}, "sr7": {"Sakura"}, "couteau": {"Sakura"}}
 
 
 def weapon_dir(W):
@@ -241,6 +242,7 @@ def build_skin(W, skin):
         ctx.zones["branch"] = W.zones["branch"]
         ctx.emblem = W.emblem
         ctx.flower_scale = W.flower_scale
+        ctx.label = W.label
         halves.append(skin["paint"](ctx))
     design = Image.new("RGB", (2 * Wpx, H))
     design.paste(halves[0], (0, 0))
@@ -365,6 +367,9 @@ def main():
         del argv[i:i + 2]
     W = WEAPONS[key]
     args = [a for a in argv if not a.startswith("--")]
+    if "--zip" in argv:  # seulement le zip et la galerie, sans reconstruire
+        write_zip_and_gallery(W)
+        return
     if "--installer" not in argv:
         todo = [skins.BY_NAME[a.lower()] for a in args] if args else skins.SKINS
         for s in todo:

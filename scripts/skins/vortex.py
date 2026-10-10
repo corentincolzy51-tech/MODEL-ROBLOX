@@ -32,40 +32,48 @@ def vortex(ctx, cx, cz, R, n, rng, cols, width, turns=1.4, blur=0.0, opacity=1.0
 
 
 def paint(ctx):
-    rng = ctx.rng
+    rng, ds = ctx.rng, ctx.ds
     ctx.fill(BG)
-    n = ctx.noise(0.25, 6)
+    n = ctx.noise(0.25 * ds, 6)
     ctx.tint((48, 46, 52), np.clip((n - 0.45) * 2.5, 0, 1), 0.8)   # fumée
     ctx.tint((8, 8, 10), np.clip((0.42 - n) * 3, 0, 1), 0.7)
 
     # grand tourbillon sombre en fond
-    vortex(ctx, 1.6, 0.8, 1.3, 260, rng, ((60, 14, 20), (45, 45, 52), (80, 20, 28)), 0.014, turns=1.8, blur=0.01, opacity=0.6)
+    ex0, ez0, ex1, ez1 = ctx.extent()
+    vortex(ctx, (ex0 + ex1) / 2, (ez0 + ez1) / 2, 0.36 * (ex1 - ex0), 260, rng,
+           ((60, 14, 20), (45, 45, 52), (80, 20, 28)), 0.014 * ds, turns=1.8, blur=0.01 * ds, opacity=0.6)
     # tourbillons : fumée grise floue, puis traînées rouges nettes
-    for cx, cz, R in ((1.52, 0.86, 0.42), (2.55, 0.90, 0.32), (1.735, 0.35, 0.2), (0.42, 0.82, 0.3), (1.19, 0.40, 0.14)):
-        vortex(ctx, cx, cz, R * 1.15, 150, rng, (GREY, (70, 70, 76), GREY_L), 0.01, blur=0.006, opacity=0.55)
-        vortex(ctx, cx, cz, R, 120, rng, (RED, RED_D, RED, RED_L), 0.007, turns=1.8, opacity=0.9)
+    for zone in ("receiver", "handguard", "mag", "stock", "grip"):
+        cx, cz = ctx.at(zone, 0.5, 0.5)
+        R = min(0.45 * max(ctx.zw(zone), ctx.zh(zone)), 1.1 * min(ctx.zw(zone), ctx.zh(zone)))
+        vortex(ctx, cx, cz, R * 1.15, 150, rng, (GREY, (70, 70, 76), GREY_L), 0.01 * ds, blur=0.006 * ds, opacity=0.55)
+        vortex(ctx, cx, cz, R, 120, rng, (RED, RED_D, RED, RED_L), 0.007 * ds, turns=1.8, opacity=0.9)
         lay = ctx.layer()
         d = ImageDraw.Draw(lay)
         px, py = ctx.P(cx, cz)
         r = ctx.L(R * 0.08)
         d.ellipse([px - r, py - r, px + r, py + r], fill=rgba((5, 5, 6)))
         d.ellipse([px - r * 1.6, py - r * 1.6, px + r * 1.6, py + r * 1.6], outline=rgba(RED), width=max(2, int(r * 0.2)))
-        ctx.glow(lay, 0.01, 0.7)
+        ctx.glow(lay, 0.01 * ds, 0.7)
 
-    # lignes acérées
+    # lignes acérées en bas et en haut des pièces
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    for x0, z0, x1, z1, h in ((1.06, 0.70, 1.98, 0.70, 0.018), (2.06, 0.77, 2.92, 0.77, 0.016), (0.16, 0.57, 0.62, 0.85, 0.014),
-                              (1.10, 1.02, 1.60, 1.02, 0.01), (2.30, 1.03, 2.92, 1.03, 0.01)):
-        poly = [ctx.P(x0, z0), ctx.P(x1, z1), ctx.P(x1 - 0.04, z1 + h), ctx.P(x0 + 0.04, z0 + h)]
-        d.polygon(poly, fill=rgba(RED))
-    for k in range(5):  # chevrons sur le garde-main
-        x = 2.10 + k * 0.05
-        d.line([ctx.P(x, 0.98), ctx.P(x + 0.025, 0.95), ctx.P(x, 0.92)], fill=rgba(GREY_L), width=max(2, int(ctx.L(0.007))))
-    ctx.glow(lay, 0.008, 0.6)
-    text(ctx, "VORTEX", 2.62, 0.99, 0.045, GREY_L, kind="black")
+    for zone, v, h in (("receiver", 0.1, 0.018), ("handguard", 0.1, 0.016), ("stock", 0.12, 0.014),
+                       ("receiver", 0.95, 0.01), ("handguard", 0.95, 0.01)):
+        x0, z0, x1, z1 = ctx.zones[zone]
+        zz = z0 + v * (z1 - z0)
+        hh, ins = h * ds, 0.04 * ds
+        d.polygon([ctx.P(x0, zz), ctx.P(x1, zz), ctx.P(x1 - ins, zz + hh), ctx.P(x0 + ins, zz + hh)], fill=rgba(RED))
+    cx, cz = ctx.at("handguard", 0.1, 0.68)
+    for k in range(5):  # chevrons
+        x = cx + k * 0.05 * ds
+        d.line([ctx.P(x, cz + 0.03 * ds), ctx.P(x + 0.025 * ds, cz), ctx.P(x, cz - 0.03 * ds)], fill=rgba(GREY_L),
+               width=max(2, int(ctx.L(0.007 * ds))))
+    ctx.glow(lay, 0.008 * ds, 0.6)
+    text(ctx, "VORTEX", *ctx.at("handguard", 0.65, 0.85), 0.045 * ds, GREY_L, kind="black")
 
-    triangle_emblem(ctx, RED, outline=(8, 8, 10), glow=0.012)
+    triangle_emblem(ctx, RED, outline=(8, 8, 10), glow=0.012 * ds)
     ctx.grain(6)
     return ctx.result()
 

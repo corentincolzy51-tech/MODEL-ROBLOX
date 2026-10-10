@@ -59,61 +59,72 @@ def hazard_band(ctx, x0, z0, x1, z1, c1, c2, step=0.06):
 
 
 def paint(ctx):
-    rng = ctx.rng
+    rng, ds = ctx.rng, ctx.ds
     ctx.fill(BG)
-    n = ctx.noise(0.12, 5)
+    n = ctx.noise(0.12 * ds, 5)
     ctx.tint((48, 54, 46), np.clip((n - 0.5) * 3, 0, 1), 0.8)   # plaques plus claires
     ctx.tint((12, 14, 12), np.clip((0.45 - n) * 3, 0, 1), 0.7)  # crasse
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
     for _ in range(260):  # rayures
-        x, z = rng.uniform(0, 3.0), rng.uniform(0.1, 1.1)
-        ln = rng.uniform(0.02, 0.09)
+        x, z = ctx.rand_extent()
+        ln = rng.uniform(0.02, 0.09) * ds
         a = rng.uniform(-0.4, 0.4)
         d.line([ctx.P(x, z), ctx.P(x + ln * math.cos(a), z + ln * math.sin(a))], fill=(95, 105, 92, 150), width=2)
     ctx.over(lay)
 
-    # bandes de danger
-    hazard_band(ctx, 2.06, 0.74, 2.94, 0.80, YEL, (20, 20, 18))
-    hazard_band(ctx, 0.16, 0.56, 0.66, 0.60, YEL, (20, 20, 18))
-    hazard_band(ctx, 1.62, 0.14, 1.90, 0.19, ACID, (20, 20, 18), step=0.05)
+    # bandes de danger en bas des pièces
+    for zone, c1, k in (("handguard", YEL, 0.2), ("stock", YEL, 0.1), ("mag", ACID, 0.14)):
+        x0, z0, x1, z1 = ctx.zones[zone]
+        hazard_band(ctx, x0, z0, x1, z0 + k * (z1 - z0), c1, (20, 20, 18), step=0.06 * ds)
 
     # flaques de slime + coulures (depuis le haut des pièces)
     slime = ctx.layer()
     d = ImageDraw.Draw(slime)
-    for x0, x1, ztop in ((1.06, 2.0, 1.06), (2.04, 2.94, 1.06), (0.10, 0.66, 1.02), (1.56, 1.86, 0.60), (1.06, 1.34, 0.64)):
-        pts = [ctx.P(x0, ztop + 0.02)]
+    for zone in ("receiver", "handguard", "stock", "mag", "grip"):
+        x0, _, x1, ztop = ctx.zones[zone]
+        ztop += 0.03 * ds
+        pts = [ctx.P(x0, ztop + 0.02 * ds)]
         x = x0
         while x < x1:
-            pts.append(ctx.P(x, ztop - rng.uniform(0.02, 0.05)))
-            x += rng.uniform(0.03, 0.07)
-        pts += [ctx.P(x1, ztop - 0.03), ctx.P(x1, ztop + 0.02)]
+            pts.append(ctx.P(x, ztop - rng.uniform(0.02, 0.05) * ds))
+            x += rng.uniform(0.03, 0.07) * ds
+        pts += [ctx.P(x1, ztop - 0.03 * ds), ctx.P(x1, ztop + 0.02 * ds)]
         d.polygon(pts, fill=rgba(ACID))
-        drips(ctx, d, x0 + 0.02, x1 - 0.02, ztop - 0.03, ACID, int((x1 - x0) * 22), 0.22, 0.02, highlight=ACID_L)
+        ln = min(0.22 * ds, 0.6 * ctx.zh(zone))
+        drips(ctx, d, x0 + 0.02 * ds, x1 - 0.02 * ds, ztop - 0.03 * ds, ACID, max(3, int((x1 - x0) / ds * 22)),
+              ln, 0.02 * ds, highlight=ACID_L)
     for _ in range(40):  # bulles
         x, z = ctx.rand_in(rng.choice(("receiver", "handguard", "stock", "mag")))
-        r = ctx.L(rng.uniform(0.006, 0.02))
+        r = ctx.L(rng.uniform(0.006, 0.02) * ds)
         px, py = ctx.P(x, z)
         d.ellipse([px - r, py - r, px + r, py + r], outline=rgba(ACID), width=max(2, int(r * 0.25)))
-    ctx.glow(slime, 0.025, 0.55)
+    ctx.glow(slime, 0.025 * ds, 0.55)
 
-    biohazard(ctx, 1.50, 0.85, 0.12, ACID, glow=0.02)
-    biohazard(ctx, 1.735, 0.36, 0.07, ACID, glow=0.015)
-    biohazard(ctx, 2.80, 0.90, 0.055, DARKG)
-    biohazard(ctx, 0.58, 0.73, 0.045, DARKG)
+    biohazard(ctx, *ctx.at("receiver", 0.45, 0.48), min(0.12 * ds, 0.33 * ctx.zh("receiver")), ACID, glow=0.02 * ds)
+    biohazard(ctx, *ctx.at("mag", 0.5, 0.5), min(0.07 * ds, 0.3 * min(ctx.zw("mag"), ctx.zh("mag"))), ACID,
+              glow=0.015 * ds)
+    biohazard(ctx, *ctx.at("handguard", 0.86, 0.55), min(0.055 * ds, 0.28 * ctx.zh("handguard")), DARKG)
+    biohazard(ctx, *ctx.at("stock", 0.85, 0.42), min(0.045 * ds, 0.25 * ctx.zh("stock")), DARKG)
 
-    text(ctx, "TOXIC", 2.42, 0.945, 0.11, ACID, stroke=(10, 20, 8), stroke_w=0.01)
-    text(ctx, "C4H10FO2P", 2.42, 0.872, 0.028, (120, 170, 90), kind="mono")
-    text(ctx, "BIOHAZARD // LVL 4", 1.85, 0.72, 0.026, (140, 190, 100), kind="mono")
-    text(ctx, "DANGER", 1.18, 0.42, 0.05, YEL, kind="black", angle=72, stroke=(10, 10, 8), stroke_w=0.006)
+    tx, tz = ctx.at("handguard", 0.42, 0.62)
+    ts = min(0.11 * ds, 0.4 * ctx.zh("handguard"), 0.2 * ctx.zw("handguard"))
+    text(ctx, "TOXIC", tx, tz, ts, ACID, stroke=(10, 20, 8), stroke_w=0.09 * ts)
+    text(ctx, "C4H10FO2P", tx, tz - 0.65 * ts, 0.26 * ts, (120, 170, 90), kind="mono")
+    text(ctx, "BIOHAZARD // LVL 4", *ctx.at("receiver", 0.82, 0.12), 0.026 * ds, (140, 190, 100), kind="mono")
+    gs = min(0.05 * ds, 0.22 * min(ctx.zw("grip"), ctx.zh("grip")))
+    text(ctx, "DANGER", *ctx.at("grip", 0.5, 0.5), gs, YEL, kind="black",
+         angle=72 if ctx.zh("grip") > ctx.zw("grip") else 0, stroke=(10, 10, 8), stroke_w=0.12 * gs)
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
-    a, b, c = ctx.P(1.92, 0.98), ctx.P(1.99, 0.98), ctx.P(1.955, 1.04)  # triangle attention
-    d.polygon([a, b, c], fill=rgba(YEL), outline=rgba((10, 10, 8)), width=3)
+    wx, wz = ctx.at("receiver", 0.95, 0.82)
+    w = 0.035 * ds
+    d.polygon([ctx.P(wx - w, wz - 0.03 * ds), ctx.P(wx + w, wz - 0.03 * ds), ctx.P(wx, wz + 0.03 * ds)],
+              fill=rgba(YEL), outline=rgba((10, 10, 8)), width=3)
     ctx.over(lay)
-    text(ctx, "!", 1.955, 0.995, 0.04, (10, 10, 8), kind="black")
+    text(ctx, "!", wx, wz - 0.012 * ds, 0.04 * ds, (10, 10, 8), kind="black")
 
-    triangle_emblem(ctx, ACID, outline=(10, 20, 8), glow=0.02)
+    triangle_emblem(ctx, ACID, outline=(10, 20, 8), glow=0.02 * ds)
     ctx.grain(8)
     return ctx.result()
 

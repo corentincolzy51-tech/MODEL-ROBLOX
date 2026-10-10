@@ -44,18 +44,18 @@ WEAPON = Weapon(
     target=(1.625, 0.2, 0.426), grip=GRIP_POINT, contour=0.014, flower_scale=0.38,
     groups={"Body": "Corps"},
     zones={
-        "stock": (0.10, 0.14, 0.48, 0.29),
-        "receiver": (0.62, 0.12, 1.30, 0.33),
-        "handguard": (1.00, 0.13, 1.45, 0.30),
-        "grip": (0.10, 0.14, 0.48, 0.29),
-        "mag": (0.62, 0.12, 1.00, 0.33),
+        "stock": (0.10, 0.14, 0.30, 0.29),      # arrière du manche
+        "grip": (0.30, 0.14, 0.48, 0.29),       # avant du manche
+        "mag": (0.62, 0.13, 0.80, 0.32),        # talon de la lame
+        "receiver": (0.80, 0.12, 1.20, 0.33),   # milieu de la lame
+        "handguard": (1.20, 0.13, 1.48, 0.29),  # pointe
         "band": (0.0, 0.12, 1.6, 0.33),
         "bouquet": (0.66, 0.14, 0.98, 0.32),
         "branch": ((0.62, 0.20), (1.45, 0.25)),
         "top_band_z": 0.22,
     },
-    label="VANTA",
+    label="BLADE",
     # la main tenait le couteau trop près de la garde : on avance l'arme pour voir le manche
     hold_offset=(0.2, 0.0, 0.0),
-    emblem=(1.05, 0.22, 0.12),
+    emblem=(0.20, 0.215, 0.10),
 )
