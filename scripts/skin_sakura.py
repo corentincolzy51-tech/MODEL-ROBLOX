@@ -138,14 +138,14 @@ def wiggle(p0, p1, n, amp, rng):
     return pts
 
 
-def generate(width, height, w2p, px_per_m, zones, seed=7):
+def generate(width, height, w2p, px_per_m, zones, seed=7, scale=1.0):
     """
     zones : dict de rectangles monde (xmin, zmin, xmax, zmax) :
       stock, receiver, grip, mag, handguard, branch (p0, p1)
     """
     rng = random.Random(seed)
     nrng = np.random.default_rng(seed)
-    S = lambda m: m * px_per_m  # mètres -> pixels
+    S = lambda m: m * px_per_m * scale  # mètres -> pixels
 
     def rect_pt(r):
         x0, z0, x1, z1 = r

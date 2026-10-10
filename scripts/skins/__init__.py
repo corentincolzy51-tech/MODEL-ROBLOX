@@ -32,6 +32,14 @@ COLORS = {
     "VioletNeon": (165, 75, 255, True),
     "CyanNeon": (50, 225, 255, True),
     "MagentaNeon": (255, 40, 205, True),
+    # lentilles de lunette (néon, opaques)
+    "LentilleRose": (255, 120, 200, True),
+    "LentilleViolet": (175, 100, 255, True),
+    "LentilleRouge": (255, 60, 60, True),
+    "LentilleVert": (150, 255, 80, True),
+    "LentilleBleu": (110, 210, 255, True),
+    "LentilleMagenta": (255, 70, 220, True),
+    "LentilleBlanc": (235, 235, 245, True),
     # verres du viseur (transparents)
     "Verre": (255, 170, 215, False),
     "VerreViolet": (185, 120, 255, False),

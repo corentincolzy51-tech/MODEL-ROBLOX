@@ -50,6 +50,18 @@ Chaque skin : `weapons/VANTA_AR-01/<Skin>/Phantom_<Skin>.fbx` (+ `.blend`, textu
 Les 8 nouveaux FBX d'un coup : `weapons/VANTA_AR-01/Skins_AR-01_FBX.zip` (Sakura, déjà installé en
 `Phantom S 1`, n'y est pas ; son FBX reste dans `Sakura/`).
 
+## Autres armes (skin Sakura)
+
+| Arme | Dossier Roblox | Structure | FBX |
+|---|---|---|---|
+| VANTA DE-50 (deagle) | `Armes.Deagle` | Corps, Chargeur, Gachette, **Levier = culasse** (+ organes de visée) | `weapons/VANTA_DE-50/Sakura/Deagle_Sakura.fbx` |
+| VANTA SR-7 (sniper) | `Armes.Sniper` | Corps (lunette : `Body_Lentille*`), Chargeur, Gachette, **Levier = poignée de culasse** | `weapons/VANTA_SR-7/Sakura/Sniper_Sakura.fbx` |
+| Couteau | `Armes.Couteau` | tout dans Corps | `weapons/VANTA_Couteau/Sakura/Couteau_Sakura.fbx` |
+
+Le même script `roblox/InstallerSkinsPhantom.lua` installe toutes les armes : il reconnaît
+l'arme au début du nom du modèle (« Deagle Sakura »...), prend comme référence « <Arme> P »
+(sinon le premier modèle d'origine du dossier) et nomme les skins « <Arme> S N ».
+
 ## Contenu
 
 ```
@@ -63,7 +75,8 @@ weapons/VANTA_AR-01/
 roblox/
   InstallerSkinsPhantom.lua        <- à coller dans la barre de commande après l'import
 scripts/
-  vanta_ar01.py                    <- géométrie de l'AR-01 (pièces, rôles de couleur, contours)
+  weapon_kit.py                    <- outils communs (primitives, contours, assemblage, échelle)
+  vanta_ar01.py / vanta_de50.py / vanta_sr7.py / couteau.py  <- géométrie de chaque arme
   skins/                           <- un fichier par skin (palette + dessin de la texture)
   skin_sakura.py                   <- dessin des fleurs Sakura
   build_skins.py                   <- construit, bake, exporte, génère le script Roblox
@@ -93,7 +106,8 @@ scripts/
 
 ```bash
 pip install bpy                          # Blender en module Python
-python3 scripts/build_skins.py           # tous les skins (ou : build_skins.py Royal Toxic)
+python3 scripts/build_skins.py           # AR-01, tous les skins (ou : build_skins.py Royal Toxic)
+python3 scripts/build_skins.py --weapon de50 Sakura   # deagle (sr7 = sniper, couteau)
 python3 scripts/tools/fbx_inspect.py weapons/VANTA_AR-01/Royal/Phantom_Royal.fbx
 ```
 

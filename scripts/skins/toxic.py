@@ -121,6 +121,6 @@ def paint(ctx):
 SKIN = dict(
     name="Toxic",
     palette=dict(Motif="Toxic", Sombre="Noir", Clair="Gris", Accent="VertAcide", Accent2="VertSombre",
-                 Verre="VerreVert", Gachette="VertAcide"),
+                 Verre="VerreVert", Lentille="LentilleVert", Gachette="VertAcide"),
     paint=paint,
 )

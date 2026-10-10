@@ -50,6 +50,10 @@ class Ctx:
         # flanc gauche de l'arme : la texture y est vue en miroir, on retourne donc
         # chaque texte sur lui-même pour qu'il reste lisible
         self.mirror_text = False
+        # zones du profil, emblème et taille relative des motifs (fournis par l'arme)
+        self.zones = dict(ZONES)
+        self.emblem = EMBLEM
+        self.flower_scale = 1.0
 
     # ---- conversions
     def P(self, x, z):
@@ -63,7 +67,7 @@ class Ctx:
         return [a, b, c, d]
 
     def rand_in(self, zone):
-        x0, z0, x1, z1 = ZONES[zone] if isinstance(zone, str) else zone
+        x0, z0, x1, z1 = self.zones[zone] if isinstance(zone, str) else zone
         return self.rng.uniform(x0, x1), self.rng.uniform(z0, z1)
 
     # ---- calques
@@ -140,7 +144,7 @@ class Ctx:
 # ------------------------------------------------------------------ formes
 def triangle_emblem(ctx, color, outline=(10, 8, 12), inner=None, width=0.035, glow=None):
     """Triangle « V » de VANTA sur la crosse (comme sur les visuels)."""
-    cx, cz, s = EMBLEM
+    cx, cz, s = ctx.emblem
     lay = ctx.layer()
     d = ImageDraw.Draw(lay)
     outer = [ctx.P(cx - s * 0.62, cz + s * 0.45), ctx.P(cx + s * 0.62, cz + s * 0.45), ctx.P(cx, cz - s * 0.62)]

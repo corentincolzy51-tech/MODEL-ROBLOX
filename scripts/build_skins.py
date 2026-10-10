@@ -1,19 +1,20 @@
 """Construit les skins de la VANTA AR-01 -> FBX prêts pour Roblox (structure « Phantom P »).
 
 Usage :
-    python3 scripts/build_skins.py                 # tous les skins
-    python3 scripts/build_skins.py Royal Toxic     # seulement ceux-là
-    python3 scripts/build_skins.py --installer     # régénère seulement le script Roblox
+    python3 scripts/build_skins.py                         # AR-01, tous les skins
+    python3 scripts/build_skins.py --weapon de50 Sakura    # deagle, skin Sakura
+    python3 scripts/build_skins.py --weapon sr7 Royal Toxic
+    python3 scripts/build_skins.py --installer             # régénère seulement le script Roblox
+Armes : ar01 (Phantom), de50 (Deagle), sr7 (Sniper), couteau (Couteau).
 
-Sorties (weapons/VANTA_AR-01/<Skin>/) :
-    Phantom_<Skin>.fbx    1 unité = 1 stud (Scale Unit = Stud à l'import)
-    Phantom_<Skin>.blend  en mètres (1,096 m de long), textures empaquetées
-    textures/*.png        textures 1024 px + dessin source vue de côté
-    Phantom_<Skin>_preview.png
+Sorties (weapons/<Arme>/<Skin>/) :
+    <Préfixe>_<Skin>.fbx    1 unité = 1 stud (Scale Unit = Stud à l'import)
+    <Préfixe>_<Skin>.blend  en mètres, textures empaquetées
+    textures/*.png          textures 1024 px + dessin source vue de côté
+    <Préfixe>_<Skin>_preview.png
 Et aussi :
-    roblox/InstallerSkinsPhantom.lua        script à coller dans la barre de commande
-    weapons/VANTA_AR-01/Skins_AR-01_FBX.zip les FBX des nouveaux skins (sans Sakura)
-    weapons/VANTA_AR-01/galerie.png         aperçu de tous les skins
+    roblox/InstallerSkinsPhantom.lua   script à coller dans la barre de commande (toutes les armes)
+    weapons/<Arme>/Skins_<Arme>_FBX.zip et weapons/<Arme>/galerie.png
 """
 import math
 import os
@@ -26,13 +27,22 @@ from mathutils import Matrix, Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
+import couteau  # noqa: E402
 import skins  # noqa: E402
-import vanta_ar01 as V  # noqa: E402
+import vanta_ar01  # noqa: E402
+import vanta_de50  # noqa: E402
+import vanta_sr7  # noqa: E402
+import weapon_kit as K  # noqa: E402
 from skins.common import Ctx  # noqa: E402
 
-WEAPON_DIR = os.path.join(ROOT, "weapons", "VANTA_AR-01")
+WEAPONS = {m.WEAPON.key: m.WEAPON for m in (vanta_ar01, vanta_de50, vanta_sr7, couteau)}
 BAKE_RES, FINAL_RES = 2048, 1024
-ZIP_EXCLUDE = {"Sakura"}
+# skins déjà installés dans le jeu, à ne pas remettre dans le zip
+ZIP_EXCLUDE = {"ar01": {"Sakura"}}
+
+
+def weapon_dir(W):
+    return os.path.join(ROOT, "weapons", W.folder)
 
 
 def lin(c):
@@ -157,7 +167,7 @@ def assign_material(ob, skin, tex_path=None):
 
 
 # ------------------------------------------------------------------ aperçu
-def preview(path):
+def preview(path, W, center):
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     sc.cycles.samples = 64
@@ -175,19 +185,25 @@ def preview(path):
     nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs["Fac"])
     nt.links.new(mix.outputs["Color"], nt.nodes["Background"].inputs["Color"])
 
-    def light(loc, energy, size):
-        bpy.ops.object.light_add(type="AREA", location=loc)
-        lo = bpy.context.object
-        lo.data.energy, lo.data.size = energy, size
-        lo.rotation_euler = (Vector((0.15, 0, 0)) - lo.location).to_track_quat("-Z", "Y").to_euler()
+    # tout est mis à l'échelle de l'arme (cadrage réglé sur l'AR-01 ; les armes
+    # compactes comme le deagle sont cadrées sur leur hauteur)
+    k = max(W.target[0], 2.7 * W.target[2]) / 3.626
+    c = Vector(center)
 
-    light((0.3, 1.4, 1.1), 28, 1.5)
-    light((1.4, 0.6, 0.2), 10, 1.5)
-    light((-0.6, -1.2, 0.9), 22, 1.0)
-    bpy.ops.object.camera_add(location=(-0.25, 1.95, 0.5))
+    def light(off, energy, size):
+        bpy.ops.object.light_add(type="AREA", location=c + Vector(off) * k)
+        lo = bpy.context.object
+        lo.data.energy, lo.data.size = energy * k * k, size * k
+        lo.rotation_euler = (c - lo.location).to_track_quat("-Z", "Y").to_euler()
+
+    light((0.1, 1.4, 1.1), 28, 1.5)
+    light((1.2, 0.6, 0.2), 10, 1.5)
+    light((-0.8, -1.2, 0.9), 22, 1.0)
+    bpy.ops.object.camera_add(location=c + Vector((-0.41, 1.95, 0.5)) * k)
     cam = bpy.context.object
     cam.data.lens = 50
-    cam.rotation_euler = (Vector((0.16, 0, 0.0)) - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam.data.clip_start = 0.01
+    cam.rotation_euler = (c - cam.location).to_track_quat("-Z", "Y").to_euler()
     sc.camera = cam
     sc.render.filepath = path
     bpy.ops.render.render(write_still=True)
@@ -197,14 +213,14 @@ def preview(path):
 
 
 # ------------------------------------------------------------------ un skin
-def build_skin(skin):
+def build_skin(W, skin):
     name = skin["name"]
-    out = os.path.join(WEAPON_DIR, name)
+    out = os.path.join(weapon_dir(W), name)
     tex_dir = os.path.join(out, "textures")
     os.makedirs(tex_dir, exist_ok=True)
-    file = f"Phantom_{name}"
+    file = f"{W.file_prefix}_{name}"
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    objs = V.build()
+    objs = W.build()
 
     # dessin vue de côté (coordonnées monde)
     pts = [v.co for (g, r), ob in objs.items() if g != "Root" for v in ob.data.vertices]
@@ -212,45 +228,52 @@ def build_skin(skin):
     x0, x1 = min(p.x for p in pts) - margin, max(p.x for p in pts) + margin
     z0, z1 = min(p.z for p in pts) - margin, max(p.z for p in pts) + margin
     xspan, zspan = x1 - x0, z1 - z0
-    W = 4096
-    H = int(W * zspan / xspan)
-    ppm = W / xspan
+    Wpx = 4096
+    H = int(Wpx * zspan / xspan)
+    ppm = Wpx / xspan
     w2p = lambda x, z: ((x - x0) * ppm, (z1 - z) * ppm)
     from PIL import Image
     halves = []
     for mirror in (False, True):
-        ctx = Ctx(W, H, w2p, ppm, V.design_to_world, V.STUD * V._scale.x, seed=11)
+        ctx = Ctx(Wpx, H, w2p, ppm, W.design_to_world, K.STUD * W.scale.x, seed=11)
         ctx.mirror_text = mirror
+        ctx.zones = {k: v for k, v in W.zones.items() if k not in ("branch", "top_band_z")}
+        ctx.zones["branch"] = W.zones["branch"]
+        ctx.emblem = W.emblem
+        ctx.flower_scale = W.flower_scale
         halves.append(skin["paint"](ctx))
-    design = Image.new("RGB", (2 * W, H))
+    design = Image.new("RGB", (2 * Wpx, H))
     design.paste(halves[0], (0, 0))
-    design.paste(halves[1], (W, 0))
+    design.paste(halves[1], (Wpx, 0))
     design_path = os.path.join(tex_dir, f"{name.lower()}_design_sideview.png")
     design.save(design_path)
     design_img = bpy.data.images.load(design_path)
 
-    z_band = V.design_to_world(0, 0.90)[1]
+    z_band = W.design_to_world(0, W.zones["top_band_z"])[1]
     tex = {}
-    for group in ("Body", "Magazine"):
-        ob = objs[(group, "Motif")]
+    for group in W.groups:
+        ob = objs.get((group, "Motif"))
+        if ob is None:
+            continue
         project_uvs(ob, x0, z0, xspan, zspan, z_band)
         path = os.path.join(tex_dir, f"{file}_{group}_{name}.png")
         bake(ob, design_img, path)
         tex[f"{group}_{name}"] = path
 
-    contours = V.add_contours(objs)
+    contours = W.add_contours(objs)
     palette = dict(skin["palette"], Motif=name)
-    final = V.assemble(objs, contours, palette, f"Phantom {name}")
+    final = W.assemble(objs, contours, palette, f"{W.file_prefix} {name}")
     for oname, ob in final.items():
         if oname != "Root":
             assign_material(ob, skin, tex.get(oname))
     final["Root"].hide_render = True
     for oname, ob in final.items():
         key = oname.split("_")[-1]
-        if key == "Contour" or key.startswith("Verre"):  # pas d'ombre dans l'aperçu
+        if key == "Contour" or key.startswith("Verre") or key.startswith("Lentille"):  # pas d'ombre dans l'aperçu
             ob.visible_shadow = ob.visible_diffuse = ob.visible_glossy = ob.visible_transmission = False
 
-    preview(os.path.join(out, f"{file}_preview.png"))
+    center = ((x0 + x1) / 2, 0.0, (z0 + z1) / 2)
+    preview(os.path.join(out, f"{file}_preview.png"), W, center)
     bpy.ops.file.pack_all()
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out, f"{file}.blend"), compress=True)
     blend1 = os.path.join(out, f"{file}.blend1")
@@ -258,7 +281,7 @@ def build_skin(skin):
         os.remove(blend1)
 
     # export : géométrie convertie en studs (1 unité du fichier = 1 stud)
-    to_studs = Matrix.Scale(1 / V.STUD, 4)
+    to_studs = Matrix.Scale(1 / K.STUD, 4)
     for ob in final.values():
         ob.data.transform(to_studs)
     bpy.ops.object.select_all(action="DESELECT")
@@ -287,32 +310,38 @@ def write_installer():
         lines.append(f"\t{name} = {{ Color3.fromRGB({r}, {g}, {b}), {'true' if neon else 'false'} }},")
     skin_lines = [f"\t{s['name']} = {{ Gachette = \"{s['palette']['Gachette']}\" }}," for s in skins.SKINS]
     ordre = ", ".join(f'"{s["name"]}"' for s in skins.SKINS)
+    arme_lines = []
+    for W in WEAPONS.values():
+        groups = ", ".join(f'{k} = "{v}"' for k, v in W.groups.items())
+        arme_lines.append(f'\t{W.file_prefix} = {{ dossier = "{W.file_prefix}", reference = "{W.file_prefix} P", '
+                          f'longueur = {W.target[0]}, groupes = {{ {groups} }} }},')
     tpl = tpl.replace("--@@COULEURS@@", "\n".join(lines)).replace("--@@SKINS@@", "\n".join(skin_lines))
-    tpl = tpl.replace("--@@ORDRE@@", ordre)
+    tpl = tpl.replace("--@@ORDRE@@", ordre).replace("--@@ARMES@@", "\n".join(arme_lines))
     path = os.path.join(ROOT, "roblox", "InstallerSkinsPhantom.lua")
     with open(path, "w", encoding="utf-8") as f:
         f.write(tpl)
     print("INSTALLER", path)
 
 
-def write_zip_and_gallery():
+def write_zip_and_gallery(W):
     from PIL import Image, ImageDraw, ImageFont
-    zpath = os.path.join(WEAPON_DIR, "Skins_AR-01_FBX.zip")
+    wd = weapon_dir(W)
+    tag = W.folder.replace("VANTA_", "")
+    zpath = os.path.join(wd, f"Skins_{tag}_FBX.zip")
     tiles = []
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for s in skins.SKINS:
-            fbx = os.path.join(WEAPON_DIR, s["name"], f"Phantom_{s['name']}.fbx")
-            # Sakura est déjà installé dans le jeu (Phantom S 1) : pas dans le zip
-            if os.path.exists(fbx) and s["name"] not in ZIP_EXCLUDE:
+            fbx = os.path.join(wd, s["name"], f"{W.file_prefix}_{s['name']}.fbx")
+            if os.path.exists(fbx) and s["name"] not in ZIP_EXCLUDE.get(W.key, ()):
                 z.write(fbx, os.path.basename(fbx))
-            prev = os.path.join(WEAPON_DIR, s["name"], f"Phantom_{s['name']}_preview.png")
+            prev = os.path.join(wd, s["name"], f"{W.file_prefix}_{s['name']}_preview.png")
             if os.path.exists(prev):
                 tiles.append((s["name"], Image.open(prev).convert("RGB")))
     print("ZIP", zpath)
     if not tiles:
         return
     tw, th = 800, 450
-    cols = 3
+    cols = min(3, len(tiles))
     rows = math.ceil(len(tiles) / cols)
     g = Image.new("RGB", (tw * cols, th * rows), (12, 12, 15))
     f = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf", 40)
@@ -321,18 +350,25 @@ def write_zip_and_gallery():
         x, y = (i % cols) * tw, (i // cols) * th
         g.paste(im, (x, y))
         ImageDraw.Draw(g).text((x + 24, y + 18), name.upper(), font=f, fill=(255, 255, 255))
-    g.save(os.path.join(WEAPON_DIR, "galerie.png"))
-    print("GALERIE", os.path.join(WEAPON_DIR, "galerie.png"))
+    g.save(os.path.join(wd, "galerie.png"))
+    print("GALERIE", os.path.join(wd, "galerie.png"))
 
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    if "--installer" not in sys.argv:
+    argv = sys.argv[1:]
+    key = "ar01"
+    if "--weapon" in argv:
+        i = argv.index("--weapon")
+        key = argv[i + 1]
+        del argv[i:i + 2]
+    W = WEAPONS[key]
+    args = [a for a in argv if not a.startswith("--")]
+    if "--installer" not in argv:
         todo = [skins.BY_NAME[a.lower()] for a in args] if args else skins.SKINS
         for s in todo:
-            build_skin(s)
+            build_skin(W, s)
+        write_zip_and_gallery(W)
     write_installer()
-    write_zip_and_gallery()
 
 
 main()

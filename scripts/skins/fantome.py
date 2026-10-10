@@ -59,6 +59,6 @@ def paint(ctx):
 SKIN = dict(
     name="Fantome",
     palette=dict(Motif="Fantome", Sombre="Noir", Clair="Argent", Accent="Blanc", Accent2="GrisClair",
-                 Verre="VerreBlanc", Gachette="GrisClair"),
+                 Verre="VerreBlanc", Lentille="LentilleBlanc", Gachette="GrisClair"),
     paint=paint,
 )

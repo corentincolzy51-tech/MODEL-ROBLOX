@@ -95,6 +95,6 @@ def paint(ctx):
 SKIN = dict(
     name="Arcade",
     palette=dict(Motif="Arcade", Sombre="NoirViolet", Clair="Bleu", Accent="MagentaNeon", Accent2="CyanNeon",
-                 Verre="VerreMagenta", Gachette="CyanNeon"),
+                 Verre="VerreMagenta", Lentille="LentilleMagenta", Gachette="CyanNeon"),
     paint=paint,
 )

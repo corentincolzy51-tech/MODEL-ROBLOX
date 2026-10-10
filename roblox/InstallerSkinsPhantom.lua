@@ -1,30 +1,37 @@
 --[[
-	Installe un ou plusieurs skins de la VANTA AR-01 à partir des FBX importés.
+	Installe un ou plusieurs skins d'armes VANTA à partir des FBX importés
+	(AR-01 « Phantom », DE-50 « Deagle », SR-7 « Sniper », « Couteau »).
 
-	1. Importe les fichiers Phantom_<Skin>.fbx (Accueil > Importer 3D, « Scale Unit » = Stud).
+	1. Importe les fichiers <Arme>_<Skin>.fbx (Accueil > Importer 3D, « Scale Unit » = Stud).
 	   -> ou sélectionne des skins déjà installés pour les recaler.
 	2. Sélectionne TOUS ces modèles dans l'Explorer (Ctrl + clic).
 	   (les modèles qui ne sont pas des skins, comme Phantom P, sont ignorés)
 	3. Colle tout le script dans la barre de commande (Affichage > Barre de commande), puis Entrée.
 
+	L'arme est reconnue par le début du nom du modèle (« Deagle Sakura », « Phantom S 3 »...).
+	Elle est rangée dans ReplicatedStorage.Armes.<Arme>, à côté de son modèle de référence
+	(« <Arme> P », sinon le premier modèle du dossier qui a un « Corps » et n'est pas un skin).
+
 	Pour chaque modèle, le script :
-	  - range les pièces comme « Phantom P » : Corps / Chargeur / Gachette / Levier + Root
+	  - range les pièces comme la référence : Corps / Chargeur / Gachette / Levier + Root
 	  - met les couleurs (une couleur par pièce), le néon et le verre transparent du viseur
-	  - met l'arme à la même longueur que Phantom P et la superpose à Phantom P
-	    (canon, dessus et crosse au même endroit), Root placé comme celui de Phantom P
-	  - centre le verre du viseur sur celui de Phantom P (Body_Cyan) pour la visée
-	  - copie depuis Phantom P : Sons, autres objets, attributs, réglages des pièces, soudures
-	  - le nomme « Phantom S 1 », 2, 3... (premier numéro libre, dans l'ordre du catalogue)
-	    (un skin déjà nommé « Phantom S N » que l'on recale garde son nom)
+	  - met l'arme à la même longueur que la référence et la superpose à elle
+	    (même boîte englobante), Root placé comme celui de la référence
+	  - centre le verre du viseur / de la lunette sur celui de la référence (Body_Cyan)
+	  - copie depuis la référence : Sons, autres objets, attributs, réglages des pièces, soudures
+	  - le nomme « <Arme> S 1 », 2, 3... (premier numéro libre, dans l'ordre du catalogue)
+	    (un skin déjà nommé « <Arme> S N » que l'on recale garde son nom)
 
 	Fichier généré par scripts/build_skins.py : ne pas modifier les tables à la main.
 ]]
 
-local PREFIXE_NOM = "Phantom S " -- les skins s'appellent Phantom S 1, Phantom S 2, ...
-local LONGUEUR = 3.616 -- studs, utilisé seulement si Phantom P est introuvable
--- poignée dans le repère de l'arme (X vers le canon, Y vers le haut, origine au centre
--- de la boîte englobante), pour une arme de 3,616 studs
-local POIGNEE = Vector3.new(-0.638, -0.2515, 0)
+-- armes : premier mot du nom du modèle -> dossier, référence, longueur (studs), groupes
+local ARMES = {
+	Phantom = { dossier = "Phantom", reference = "Phantom P", longueur = 3.616, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Deagle = { dossier = "Deagle", reference = "Deagle P", longueur = 1.25, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Sniper = { dossier = "Sniper", reference = "Sniper P", longueur = 4.862, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Couteau = { dossier = "Couteau", reference = "Couteau P", longueur = 1.625, groupes = { Body = "Corps" } },
+}
 
 -- nom de couleur -> { couleur, néon }
 local COULEURS = {
@@ -50,6 +57,13 @@ local COULEURS = {
 	VioletNeon = { Color3.fromRGB(165, 75, 255), true },
 	CyanNeon = { Color3.fromRGB(50, 225, 255), true },
 	MagentaNeon = { Color3.fromRGB(255, 40, 205), true },
+	LentilleRose = { Color3.fromRGB(255, 120, 200), true },
+	LentilleViolet = { Color3.fromRGB(175, 100, 255), true },
+	LentilleRouge = { Color3.fromRGB(255, 60, 60), true },
+	LentilleVert = { Color3.fromRGB(150, 255, 80), true },
+	LentilleBleu = { Color3.fromRGB(110, 210, 255), true },
+	LentilleMagenta = { Color3.fromRGB(255, 70, 220), true },
+	LentilleBlanc = { Color3.fromRGB(235, 235, 245), true },
 	Verre = { Color3.fromRGB(255, 170, 215), false },
 	VerreViolet = { Color3.fromRGB(185, 120, 255), false },
 	VerreRouge = { Color3.fromRGB(255, 70, 70), false },
@@ -71,16 +85,11 @@ local SKINS = {
 	Fantome = { Gachette = "GrisClair" },
 }
 local SKINS_ORDRE = { "Sakura", "Graffiti", "Royal", "Toxic", "Cryo", "Nebuleuse", "Vortex", "Arcade", "Fantome" }
-local GROUPES = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" }
 local NOMS_GROUPES = { Corps = true, Chargeur = true, Gachette = true, Levier = true, Root = true }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Selection = game:GetService("Selection")
-
-local armes = ReplicatedStorage:FindFirstChild("Armes")
-local dossier = armes and armes:FindFirstChild("Phantom")
-local reference = dossier and dossier:FindFirstChild("Phantom P")
-local refRoot = reference and reference:FindFirstChild("Root")
+local dossierArmes = ReplicatedStorage:FindFirstChild("Armes")
 
 -- ------------------------------------------------------------------ outils
 local function estMesure(p)
@@ -147,10 +156,15 @@ local function repereArme(modele)
 	end)
 	local avant, haut = axes[1].v, axes[2].v
 	local chargeur = centreDe(modele:FindFirstChild("Chargeur"))
+	local gachette = centreDe(modele:FindFirstChild("Gachette"))
+	if not chargeur and not gachette then
+		-- arme sans chargeur ni gâchette (couteau) : convention d'export Blender
+		-- (X vers l'avant, Z Blender = Y Roblox vers le haut)
+		return CFrame.fromMatrix(centre, base.XVector, base.YVector), Vector3.new(taille.X, taille.Y, taille.Z)
+	end
 	if chargeur and (chargeur - centre):Dot(haut) > 0 then
 		haut = -haut
 	end
-	local gachette = centreDe(modele:FindFirstChild("Gachette"))
 	if gachette and (gachette - centre):Dot(avant) > 0 then
 		avant = -avant
 	end
@@ -168,7 +182,7 @@ end
 
 local function trouverVerre(conteneur)
 	for _, d in ipairs(conteneur:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:match("^Body_Verre") then
+		if d:IsA("BasePart") and (d.Name:match("^Body_Verre") or d.Name:match("^Body_Lentille")) then
 			return d
 		end
 	end
@@ -188,15 +202,58 @@ local function skinDe(modele)
 	return nil
 end
 
-local modeleRef = premierMeshPart(reference)
-local refRepere, refTaille
-if reference then
-	refRepere, refTaille = repereArme(reference)
+-- arme d'un modèle : premier mot de son nom (« Deagle Sakura », « Phantom S 3 »)
+local function armeDe(modele)
+	local mot = modele.Name:match("^(%a+)")
+	return mot and ARMES[mot] and mot or nil
 end
-local parent = dossier or workspace
+
+-- infos de référence par arme (calculées une fois)
+local infos = {}
+local function infoArme(cle)
+	if infos[cle] then
+		return infos[cle]
+	end
+	local def = ARMES[cle]
+	local dossier = dossierArmes and dossierArmes:FindFirstChild(def.dossier)
+	local prefixe = cle .. " S "
+	local reference = dossier and dossier:FindFirstChild(def.reference)
+	if dossier and not reference then
+		-- pas de « <Arme> P » : premier modèle du dossier qui ressemble à l'arme d'origine
+		for _, m in ipairs(dossier:GetChildren()) do
+			if m:IsA("Model") and m:FindFirstChild("Corps") and not m.Name:find("faire")
+				and not m.Name:match("^" .. prefixe .. "%d+$") and not skinDe(m) then
+				reference = m
+				break
+			end
+		end
+	end
+	local info = {
+		def = def,
+		dossier = dossier,
+		parent = dossier or workspace,
+		prefixe = prefixe,
+		reference = reference,
+		refRoot = reference and reference:FindFirstChild("Root"),
+		modeleRef = premierMeshPart(reference),
+	}
+	if reference then
+		info.refRepere, info.refTaille = repereArme(reference)
+		print(string.format("[Skin] %s : référence = %s", cle, reference:GetFullName()))
+	else
+		warn(string.format("[Skin] %s : aucune référence trouvée dans Armes.%s (placement approximatif)", cle, def.dossier))
+	end
+	infos[cle] = info
+	return info
+end
 
 -- ------------------------------------------------------------------ un skin
 local function installer(source)
+	local cle = armeDe(source)
+	local I = infoArme(cle)
+	local reference, refRoot, modeleRef = I.reference, I.refRoot, I.modeleRef
+	local refRepere, refTaille, parent = I.refRepere, I.refTaille, I.parent
+	local PREFIXE_NOM, LONGUEUR, GROUPES = I.prefixe, I.def.longueur, I.def.groupes
 	local skin = skinDe(source)
 	local gachette = skin and SKINS[skin].Gachette or "Blanc"
 
@@ -233,6 +290,9 @@ local function installer(source)
 		local couleur = nom:match("_(%a+)$") or gachette
 		local def = COULEURS[couleur]
 		local verre = couleur:match("^Verre") ~= nil
+		if prefixe and not GROUPES[prefixe] then
+			prefixe = "Body" -- pièce d'un groupe que cette arme n'a pas : rangée dans Corps
+		end
 		part.Name = nom
 		if SKINS[couleur] then
 			part.Color = Color3.new(1, 1, 1) -- pièce texturée : ne pas teinter
@@ -284,7 +344,7 @@ local function installer(source)
 		root.Transparency = 1
 		root.CanCollide = false
 		root.Anchored = true
-		root.CFrame = monRepere * CFrame.new(POIGNEE * maTaille.X / 3.616)
+		root.CFrame = monRepere -- au centre de l'arme, faute de référence
 	end
 	root.Name = "Root"
 	root.Parent = arme
@@ -359,9 +419,10 @@ local function installer(source)
 	arme.Parent = parent
 	source:Destroy()
 
-	print(string.format("[Skin] %s = %s | longueur %.3f -> %.3f studs | verre recentré (%.3f, %.3f)%s | soudures : %s",
-		nom, skin or "?", longueurAvant, maTaille.X, decalageVerre.Y, decalageVerre.Z,
-		if refVerre then "" else " -- Body_Cyan introuvable", tostring(soude)))
+	print(string.format("[Skin] %s = %s %s | longueur %.3f -> %.3f studs | verre recentré (%.3f, %.3f)%s | soudures : %s",
+		nom, cle, skin or "?", longueurAvant, maTaille.X, decalageVerre.Y, decalageVerre.Z,
+		if not monVerre then " (pas de verre)" elseif refVerre then "" else " -- Body_Cyan introuvable",
+		tostring(soude)))
 	return arme
 end
 
@@ -375,7 +436,9 @@ for _, m in ipairs(Selection:Get()) do
 	if m:IsA("Model") then
 		-- sécurité : on ne touche qu'aux skins connus (pièce Body_<Skin>), jamais à Phantom P,
 		-- aux « Phantom A faire » ou à une autre arme sélectionnée par erreur
-		if m == reference or not skinDe(m) then
+		local cle = armeDe(m)
+		local estReference = cle and infoArme(cle).reference == m
+		if estReference or not skinDe(m) or not cle then
 			warn("[Skin] ignoré (ce n'est pas un skin connu) : " .. m:GetFullName())
 		else
 			table.insert(selection, m)
@@ -384,9 +447,13 @@ for _, m in ipairs(Selection:Get()) do
 end
 assert(#selection > 0, "Aucun skin à installer : sélectionne les modèles importés (Phantom <Skin>) dans l'Explorer")
 -- les skins déjà nommés « Phantom S N » d'abord (ils gardent leur numéro), puis l'ordre du catalogue
+local function dejaNomme(m)
+	local I = infoArme(armeDe(m))
+	return m.Parent == I.parent and m.Name:match("^" .. I.prefixe .. "%d+$") ~= nil
+end
 table.sort(selection, function(a, b)
-	local ka = if a.Parent == parent and a.Name:match("^" .. PREFIXE_NOM .. "%d+$") then 0 else 1
-	local kb = if b.Parent == parent and b.Name:match("^" .. PREFIXE_NOM .. "%d+$") then 0 else 1
+	local ka = if dejaNomme(a) then 0 else 1
+	local kb = if dejaNomme(b) then 0 else 1
 	if ka ~= kb then
 		return ka < kb
 	end
@@ -397,4 +464,4 @@ for _, m in ipairs(selection) do
 	table.insert(faits, installer(m))
 end
 Selection:Set(faits)
-print(string.format("[Skin] %d skin(s) installé(s) dans %s", #faits, parent:GetFullName()))
+print(string.format("[Skin] %d skin(s) installé(s)", #faits))

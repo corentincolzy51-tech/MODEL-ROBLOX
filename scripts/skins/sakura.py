@@ -9,25 +9,21 @@ import skin_sakura  # noqa: E402
 def paint(ctx):
     D = ctx._D
 
-    def rect(a, b, c, d):
-        (xa, za), (xb, zb) = D(a, b), D(c, d)
+    def rect(zone):
+        x0, z0, x1, z1 = zone
+        (xa, za), (xb, zb) = D(x0, z0), D(x1, z1)
         return (xa, za, xb, zb)
 
-    zones = {
-        "stock": rect(0.05, 0.50, 0.70, 1.04),
-        "bouquet": rect(0.10, 0.56, 0.52, 0.98),
-        "receiver": rect(1.04, 0.64, 2.02, 1.06),
-        "grip": rect(1.00, 0.18, 1.34, 0.62),
-        "mag": rect(1.55, 0.12, 1.92, 0.58),
-        "handguard": rect(2.02, 0.74, 2.95, 1.05),
-        "branch": (D(0.55, 0.80), D(2.85, 0.96)),
-    }
-    return skin_sakura.generate(ctx.W, ctx.H, ctx._w2p, ctx.ppm, zones)
+    Z = ctx.zones
+    zones = {k: rect(Z[k]) for k in ("stock", "bouquet", "receiver", "grip", "mag", "handguard")}
+    (b0, b1) = Z["branch"]
+    zones["branch"] = (D(*b0), D(*b1))
+    return skin_sakura.generate(ctx.W, ctx.H, ctx._w2p, ctx.ppm, zones, scale=ctx.flower_scale)
 
 
 SKIN = dict(
     name="Sakura",
     palette=dict(Motif="Sakura", Sombre="Noir", Clair="Blanc", Accent="Rose", Accent2="Rose",
-                 Verre="Verre", Gachette="Blanc"),
+                 Verre="Verre", Lentille="LentilleRose", Gachette="Blanc"),
     paint=paint,
 )
