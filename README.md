@@ -8,15 +8,15 @@ Modèles 3D (Blender) pour le jeu Roblox, générés par script.
 - Même structure que `Phantom P` dans Roblox :
 
 ```
-Phantom Sakura (Model)
-├── Corps     Body_Sakura, Body_Blanc, Body_Rose, Body_Noir, Body_Verre, Body_Contour
-├── Chargeur  Magazine_Sakura, Magazine_Rose, Magazine_Noir, Magazine_Contour
+Phantom <Skin> (Model)  -> renommé « Phantom S N » par le script
+├── Corps     Body_<Skin>, Body_<Couleurs>..., Body_Verre<Teinte>, Body_Contour
+├── Chargeur  Magazine_<Skin>, Magazine_<Couleurs>..., Magazine_Contour
 ├── Gachette  Trigger, Trigger_Contour
-├── Levier    ChargingHandle_Blanc, ChargingHandle_Rose, ChargingHandle_Contour
+├── Levier    ChargingHandle_<Couleurs>..., ChargingHandle_Contour
 └── Root      repère sur la poignée
 ```
 
-- Une pièce = une couleur (`*_Sakura` = texture de fleurs). `*_Contour` = contour noir
+- Une pièce = une couleur (`Body_<Skin>` / `Magazine_<Skin>` = texture du skin). `*_Contour` = contour noir
   cartoon (coque inversée, visible uniquement de l'extérieur).
 
 | Arme | Studs (L × H × É) | Blender (m) |
@@ -30,46 +30,72 @@ Phantom Sakura (Model)
 avec **1 unité = 1 stud**, à importer avec *Scale Unit = Stud*. (Un FBX Blender par
 défaut est lu par Roblox comme 1 m = 100 studs : c'est ce qui donnait une arme géante.)
 
+## Skins de la VANTA AR-01
+
+![Galerie](weapons/VANTA_AR-01/galerie.png)
+
+| # | Skin | Style | Couleurs (pièces) |
+|---|---|---|---|
+| 1 | Sakura | fleurs de cerisier, nuages roses | Rose, Noir, Blanc |
+| 2 | Graffiti | street art, tags, aérosol, coulures | RoseVif, Jaune, Noir, Blanc |
+| 3 | Royal | laque rouge, filigranes dorés, couronnes | Or, Rouge, Noir |
+| 4 | Toxic | slime fluo, biohazard, bandes de danger | VertAcide (néon), VertSombre, Noir |
+| 5 | Cryo | glace à facettes, givre, flocons | BleuGlace (néon), BleuNuit, Argent |
+| 6 | Nebuleuse | galaxie, étoiles, lignes lumineuses | VioletNeon, CyanNeon, NoirViolet |
+| 7 | Vortex | tourbillons rouges sur noir fumé | Rouge, GrisClair, Noir |
+| 8 | Arcade | grille synthwave, pixel art, néons | MagentaNeon, CyanNeon, Bleu |
+| 9 | Fantome | fumée blanche sur noir, minimaliste | Blanc, GrisClair, Argent |
+
+Chaque skin : `weapons/VANTA_AR-01/<Skin>/Phantom_<Skin>.fbx` (+ `.blend`, textures, aperçu).
+Les 8 nouveaux FBX d'un coup : `weapons/VANTA_AR-01/Skins_AR-01_FBX.zip` (Sakura, déjà installé en
+`Phantom S 1`, n'y est pas ; son FBX reste dans `Sakura/`).
+
 ## Contenu
 
 ```
-weapons/VANTA_AR-01/Sakura/
-  Phantom_Sakura.fbx           <- à importer dans Roblox Studio
-  Phantom_Sakura.blend         <- fichier Blender (textures empaquetées)
-  Phantom_Sakura_preview.png   <- rendu d'aperçu
-  textures/                    <- textures 1024 px + dessin source
+weapons/VANTA_AR-01/
+  <Skin>/Phantom_<Skin>.fbx        <- à importer dans Roblox Studio
+  <Skin>/Phantom_<Skin>.blend      <- fichier Blender (textures empaquetées)
+  <Skin>/Phantom_<Skin>_preview.png
+  <Skin>/textures/                 <- textures 1024 px + dessin source
+  Skins_AR-01_FBX.zip              <- les FBX des 8 nouveaux skins
+  galerie.png
 roblox/
-  InstallerPhantomSakura.lua   <- à coller dans la barre de commande après l'import
+  InstallerSkinsPhantom.lua        <- à coller dans la barre de commande après l'import
 scripts/
-  vanta_ar01.py                <- géométrie de l'AR-01 (pièces, couleurs, contours)
-  skin_sakura.py               <- dessin de la texture Sakura
-  build_ar01_sakura.py         <- construit, bake, exporte
-  tools/fbx_inspect.py         <- vérifie la taille réelle (en studs) d'un FBX
+  vanta_ar01.py                    <- géométrie de l'AR-01 (pièces, rôles de couleur, contours)
+  skins/                           <- un fichier par skin (palette + dessin de la texture)
+  skin_sakura.py                   <- dessin des fleurs Sakura
+  build_skins.py                   <- construit, bake, exporte, génère le script Roblox
+  templates/InstallerSkinsPhantom.lua
+  tools/fbx_inspect.py             <- vérifie la taille réelle (en studs) d'un FBX
 ```
 
 ## Import dans Roblox Studio
 
-1. **Importer 3D** → `Phantom_Sakura.fbx`, *Scale Unit* = **Stud**.
-2. Sélectionner le modèle importé, coller `roblox/InstallerPhantomSakura.lua` dans la
-   **barre de commande** (Affichage > Barre de commande), Entrée. Le script :
-   - range les pièces, met les couleurs, verre du viseur transparent ;
+1. **Importer 3D** → les `Phantom_<Skin>.fbx` voulus, *Scale Unit* = **Stud**.
+2. Sélectionner **tous** les modèles importés (Ctrl + clic), coller
+   `roblox/InstallerSkinsPhantom.lua` dans la **barre de commande** (Affichage > Barre de
+   commande), Entrée. Pour chaque modèle, le script :
+   - range les pièces, met les couleurs, le néon et le verre transparent du viseur ;
    - met l'arme à la longueur de `Phantom P` et la **superpose** à `Phantom P`
      (canon, dessus et crosse au même endroit), Root placé comme celui de `Phantom P` ;
    - centre le verre du viseur sur celui de `Phantom P` (`Body_Cyan`) pour la visée ;
    - reprend Sons / attributs / réglages / soudures de `Phantom P` ;
-   - nomme le skin **Phantom S 1** (ou 2, 3… si le nom est pris) dans
-     `ReplicatedStorage.Armes.Phantom`.
-3. Pour recaler un skin déjà installé : le sélectionner et relancer le script (pas besoin de
-   réimporter). Un skin déjà nommé « Phantom S N » garde son nom.
-4. La Sortie affiche la taille de `Phantom P`, la position de son Root et l'écart avec la
-   poignée du skin : utile pour ajuster le modèle.
-5. Si une partie Sakura reste grise : la texture est en modération ou n'a pas été importée.
+   - le nomme **Phantom S N** (premier numéro libre, dans l'ordre du tableau ci-dessus)
+     dans `ReplicatedStorage.Armes.Phantom`.
+3. Pour recaler des skins déjà installés : les sélectionner et relancer le script. Un skin
+   déjà nommé « Phantom S N » garde son nom.
+4. Si une partie texturée reste grise : la texture est en modération ou n'a pas été importée.
    Importer le PNG de `textures/` et le mettre en `TextureID` (ou `SurfaceAppearance.ColorMap`).
 
 ## Regénérer
 
 ```bash
-pip install bpy      # Blender en module Python
-python3 scripts/build_ar01_sakura.py
-python3 scripts/tools/fbx_inspect.py weapons/VANTA_AR-01/Sakura/Phantom_Sakura.fbx
+pip install bpy                          # Blender en module Python
+python3 scripts/build_skins.py           # tous les skins (ou : build_skins.py Royal Toxic)
+python3 scripts/tools/fbx_inspect.py weapons/VANTA_AR-01/Royal/Phantom_Royal.fbx
 ```
+
+Ajouter un skin : créer `scripts/skins/<nom>.py` (palette + `paint(ctx)`), l'ajouter dans
+`scripts/skins/__init__.py`, relancer `build_skins.py`.
