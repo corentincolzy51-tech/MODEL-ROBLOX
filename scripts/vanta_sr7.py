@@ -92,5 +92,6 @@ WEAPON = Weapon(
         "branch": ((0.45, 0.72), (3.70, 0.78)),
         "top_band_z": 0.75,
     },
+    label="SR-7",
     emblem=(0.55, 0.62, 0.30),
 )

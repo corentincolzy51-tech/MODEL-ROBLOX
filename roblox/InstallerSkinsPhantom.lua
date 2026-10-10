@@ -25,12 +25,13 @@
 	Fichier généré par scripts/build_skins.py : ne pas modifier les tables à la main.
 ]]
 
--- armes : premier mot du nom du modèle -> dossier, référence, longueur (studs), groupes
+-- armes : premier mot du nom du modèle -> dossier, référence, longueur (studs),
+-- décalage de prise en main (studs, repère de l'arme), groupes
 local ARMES = {
-	Phantom = { dossier = "Phantom", reference = "Phantom P", longueur = 3.616, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
-	Deagle = { dossier = "Deagle", reference = "Deagle P", longueur = 1.25, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
-	Sniper = { dossier = "Sniper", reference = "Sniper P", longueur = 4.862, groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
-	Couteau = { dossier = "Couteau", reference = "Couteau P", longueur = 1.625, groupes = { Body = "Corps" } },
+	Phantom = { dossier = "Phantom", reference = "Phantom P", longueur = 3.616, decalage = Vector3.new(0.0, 0.0, 0.0), groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Deagle = { dossier = "Deagle", reference = "Deagle P", longueur = 1.25, decalage = Vector3.new(0.0, 0.0, 0.0), groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Sniper = { dossier = "Sniper", reference = "Sniper P", longueur = 4.862, decalage = Vector3.new(0.0, 0.0, 0.0), groupes = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" } },
+	Couteau = { dossier = "Couteau", reference = "Couteau P", longueur = 1.625, decalage = Vector3.new(0.2, 0.0, 0.0), groupes = { Body = "Corps" } },
 }
 
 -- nom de couleur -> { couleur, néon }
@@ -378,6 +379,19 @@ local function installer(source)
 		local d = refRepere:PointToObjectSpace(refVerre.Position) - refRepere:PointToObjectSpace(monVerre.Position)
 		decalageVerre = Vector3.new(0, d.Y, d.Z)
 		local monde = refRepere:VectorToWorldSpace(decalageVerre)
+		for _, p in ipairs(arme:GetDescendants()) do
+			if p:IsA("BasePart") and p ~= root then
+				p.CFrame = p.CFrame + monde
+			end
+		end
+	end
+
+	-- 6 ter) décalage propre à l'arme (ex. couteau avancé pour voir le manche), dans le
+	-- repère de l'arme : X vers l'avant, Y vers le haut, Z sur le côté. Le Root ne bouge pas.
+	local decalage = I.def.decalage or Vector3.zero
+	if decalage.Magnitude > 0 then
+		local repere = if refRepere then refRepere else root.CFrame
+		local monde = repere:VectorToWorldSpace(decalage)
 		for _, p in ipairs(arme:GetDescendants()) do
 			if p:IsA("BasePart") and p ~= root then
 				p.CFrame = p.CFrame + monde

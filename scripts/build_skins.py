@@ -313,8 +313,10 @@ def write_installer():
     arme_lines = []
     for W in WEAPONS.values():
         groups = ", ".join(f'{k} = "{v}"' for k, v in W.groups.items())
+        dx, dy, dz = W.hold_offset
         arme_lines.append(f'\t{W.file_prefix} = {{ dossier = "{W.file_prefix}", reference = "{W.file_prefix} P", '
-                          f'longueur = {W.target[0]}, groupes = {{ {groups} }} }},')
+                          f'longueur = {W.target[0]}, decalage = Vector3.new({dx}, {dy}, {dz}), '
+                          f'groupes = {{ {groups} }} }},')
     tpl = tpl.replace("--@@COULEURS@@", "\n".join(lines)).replace("--@@SKINS@@", "\n".join(skin_lines))
     tpl = tpl.replace("--@@ORDRE@@", ordre).replace("--@@ARMES@@", "\n".join(arme_lines))
     path = os.path.join(ROOT, "roblox", "InstallerSkinsPhantom.lua")

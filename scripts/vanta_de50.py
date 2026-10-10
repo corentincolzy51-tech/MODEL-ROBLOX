@@ -71,5 +71,6 @@ WEAPON = Weapon(
         "branch": ((0.10, 0.78), (1.12, 0.86)),
         "top_band_z": 0.82,
     },
+    label="DE-50",
     emblem=(0.18, 0.30, 0.16),
 )

@@ -121,5 +121,6 @@ WEAPON = Weapon(
         "branch": ((0.55, 0.80), (2.85, 0.96)),
         "top_band_z": 0.90,  # hauteur du dessin vue sur le dessus/dessous
     },
+    label="AR-01",
     emblem=(0.30, 0.82, 0.26),
 )

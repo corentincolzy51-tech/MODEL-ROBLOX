@@ -110,7 +110,7 @@ class Weapon:
     """Une arme : ses pièces et ce qu'il faut pour la construire et l'exporter."""
 
     def __init__(self, key, folder, file_prefix, pieces, target, grip, zones, emblem,
-                 groups=None, contour=0.022, flower_scale=1.0):
+                 groups=None, contour=0.022, flower_scale=1.0, label="", hold_offset=(0.0, 0.0, 0.0)):
         self.key = key                    # nom court (ar01, de50, sr7, couteau)
         self.folder = folder              # dossier dans weapons/ et dans ReplicatedStorage.Armes
         self.file_prefix = file_prefix    # Phantom, Deagle, Sniper, Couteau
@@ -122,6 +122,10 @@ class Weapon:
         self.groups = groups or ALL_GROUPS
         self.contour = contour            # épaisseur du contour noir (studs)
         self.flower_scale = flower_scale  # taille relative des motifs (petites armes)
+        self.label = label                # nom court écrit sur certains skins (AR-01, DE-50...)
+        # décalage de l'arme par rapport à la main (studs : avant, haut, côté), appliqué
+        # par le script Roblox après la superposition sur la référence
+        self.hold_offset = hold_offset
         self.scale = Vector((1, 1, 1))
 
     def design_to_world(self, x, z):

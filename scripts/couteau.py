@@ -54,5 +54,8 @@ WEAPON = Weapon(
         "branch": ((0.62, 0.20), (1.45, 0.25)),
         "top_band_z": 0.22,
     },
+    label="VANTA",
+    # la main tenait le couteau trop près de la garde : on avance l'arme pour voir le manche
+    hold_offset=(0.2, 0.0, 0.0),
     emblem=(1.05, 0.22, 0.12),
 )
