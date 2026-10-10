@@ -50,11 +50,20 @@ scripts/
 ## Import dans Roblox Studio
 
 1. **Importer 3D** → `Phantom_Sakura.fbx`, *Scale Unit* = **Stud**.
-2. Sélectionner le modèle importé, coller `roblox/InstallerPhantomSakura.lua` dans la
-   **barre de commande**, Entrée. Le script range les pièces, met les couleurs, corrige la
-   taille si besoin, reprend le Root / Sons / réglages de `Phantom P` et range l'arme dans
-   `ReplicatedStorage.Armes.Phantom`.
-3. Si une partie Sakura reste grise : la texture est en modération ou n'a pas été importée.
+2. Ouvrir `roblox/InstallerPhantomSakura.lua`, régler `NOM` en haut (nom du skin dans
+   `ReplicatedStorage.Armes.Phantom`, ex. `Phantom A faire 1` ou `Phantom S 1`).
+3. Sélectionner le modèle importé, coller le script dans la **barre de commande**
+   (Affichage > Barre de commande), Entrée. Le script :
+   - range les pièces, met les couleurs ;
+   - met l'arme à la longueur de `Phantom P` et la **superpose** à `Phantom P`
+     (canon, dessus et crosse au même endroit), Root placé comme celui de `Phantom P` ;
+   - reprend Sons / attributs / réglages / soudures de `Phantom P` ;
+   - remplace l'ancien modèle du même nom (l'ancien part dans `ServerStorage > Sauvegarde skins`).
+4. Pour recaler un skin déjà installé : le sélectionner et relancer le script (pas besoin de
+   réimporter).
+5. La Sortie affiche la taille de `Phantom P`, la position de son Root et l'écart avec la
+   poignée du skin : utile pour ajuster le modèle.
+6. Si une partie Sakura reste grise : la texture est en modération ou n'a pas été importée.
    Importer le PNG de `textures/` et le mettre en `TextureID` (ou `SurfaceAppearance.ColorMap`).
 
 ## Regénérer
