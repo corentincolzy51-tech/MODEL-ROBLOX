@@ -5,8 +5,7 @@
 	   (Accueil > Importer 3D, « Scale Unit » = Stud).
 	   -> ou sélectionne directement un skin déjà installé pour le recaler.
 	2. Sélectionne ce modèle dans l'Explorer.
-	3. Vérifie NOM juste en dessous, colle tout le script dans la barre de commande
-	   (Affichage > Barre de commande), puis Entrée.
+	3. Colle tout le script dans la barre de commande (Affichage > Barre de commande), puis Entrée.
 
 	Le script :
 	  - range les pièces comme « Phantom P » : Corps / Chargeur / Gachette / Levier + Root
@@ -14,12 +13,14 @@
 	  - met l'arme à la même longueur que Phantom P
 	  - superpose l'arme sur Phantom P (canon, dessus et crosse au même endroit)
 	    et place le Root au même endroit relatif que celui de Phantom P
+	  - centre le verre du viseur sur celui de Phantom P (Body_Cyan) pour la visée
 	  - copie depuis Phantom P : le dossier Sons, les autres objets, les attributs,
 	    les réglages des pièces et les soudures
-	  - remplace l'ancien modèle du même nom (sauvegardé dans ServerStorage)
+	  - nomme le skin automatiquement « Phantom S 1 », ou 2, 3... si le nom est déjà pris
+	    (un skin déjà nommé « Phantom S N » que l'on recale garde son nom)
 ]]
 
-local NOM = "Phantom A faire 1" -- nom du skin (ex. "Phantom S 1" quand ton jeu détectera ce nom)
+local PREFIXE_NOM = "Phantom S " -- les skins s'appellent Phantom S 1, Phantom S 2, ...
 local LONGUEUR = 3.616 -- studs, utilisé seulement si Phantom P est introuvable
 -- poignée de Sakura dans le repère de l'arme (X vers le canon, Y vers le haut, origine
 -- au centre de la boîte englobante), pour une arme de 3,616 studs
@@ -30,14 +31,14 @@ local COULEURS = {
 	Blanc = Color3.fromRGB(245, 241, 245),
 	Rose = Color3.fromRGB(255, 92, 168),
 	Noir = Color3.fromRGB(30, 26, 34),
-	Lentille = Color3.fromRGB(255, 120, 200),
+	Lentille = Color3.fromRGB(255, 120, 200), -- ancienne version (verre néon)
+	Verre = Color3.fromRGB(255, 170, 215),
 	Contour = Color3.fromRGB(14, 10, 16),
 }
 local GROUPES = { Body = "Corps", Magazine = "Chargeur", Trigger = "Gachette", ChargingHandle = "Levier" }
 local NOMS_GROUPES = { Corps = true, Chargeur = true, Gachette = true, Levier = true, Root = true }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 local Selection = game:GetService("Selection")
 
 local source = Selection:Get()[1]
@@ -153,7 +154,6 @@ end
 
 -- 2) nouveau modèle avec la même structure que Phantom P
 local arme = Instance.new("Model")
-arme.Name = NOM
 local groupes = {}
 for prefixe, nomGroupe in pairs(GROUPES) do
 	local g = Instance.new("Model")
@@ -168,7 +168,8 @@ for nom, part in pairs(pieces) do
 	part.Name = nom
 	part.Color = COULEURS[couleur] or COULEURS.Blanc
 	part.Material = if couleur == "Lentille" then Enum.Material.Neon else Enum.Material.SmoothPlastic
-	part.CastShadow = couleur ~= "Contour" and couleur ~= "Lentille"
+	part.CastShadow = couleur ~= "Contour" and couleur ~= "Lentille" and couleur ~= "Verre"
+	part.Transparency = if couleur == "Verre" then 0.75 else 0
 	if modeleRef then
 		part.Anchored = modeleRef.Anchored
 		part.CanCollide = modeleRef.CanCollide
@@ -240,6 +241,22 @@ else
 	arme:PivotTo(CFrame.new(source:GetPivot().Position))
 end
 
+-- 6 bis) visée : le verre du skin au même endroit (hauteur/côté) que celui de Phantom P,
+-- par rapport au Root. On déplace les pièces, pas le Root.
+local decalageVerre = Vector3.zero
+local refVerre = reference and reference:FindFirstChild("Body_Cyan", true)
+local monVerre = arme:FindFirstChild("Body_Verre", true) or arme:FindFirstChild("Body_Lentille", true)
+if refVerre and monVerre and refVerre:IsA("BasePart") then
+	local d = refRepere:PointToObjectSpace(refVerre.Position) - refRepere:PointToObjectSpace(monVerre.Position)
+	decalageVerre = Vector3.new(0, d.Y, d.Z)
+	local monde = refRepere:VectorToWorldSpace(decalageVerre)
+	for _, p in ipairs(arme:GetDescendants()) do
+		if p:IsA("BasePart") and p ~= root then
+			p.CFrame = p.CFrame + monde
+		end
+	end
+end
+
 -- 7) soudures sur le Root si Phantom P en utilise
 local soude = false
 if reference then
@@ -261,27 +278,31 @@ if soude then
 	end
 end
 
--- 8) remplace l'ancien modèle du même nom (sauvegarde dans ServerStorage)
+-- 8) nom automatique : Phantom S 1, 2, 3... (le premier libre)
 local parent = dossier or workspace
-local ancien = parent:FindFirstChild(NOM)
-if ancien and ancien ~= source then
-	local sauvegarde = ServerStorage:FindFirstChild("Sauvegarde skins") or Instance.new("Folder")
-	sauvegarde.Name = "Sauvegarde skins"
-	sauvegarde.Parent = ServerStorage
-	ancien.Parent = sauvegarde
+local nom = source.Name
+if not (source.Parent == parent and nom:match("^" .. PREFIXE_NOM .. "%d+$")) then
+	local n = 1
+	while parent:FindFirstChild(PREFIXE_NOM .. n) do
+		n += 1
+	end
+	nom = PREFIXE_NOM .. n
 end
+arme.Name = nom
 arme.Parent = parent
 source:Destroy()
 Selection:Set({ arme })
 
 -- 9) infos pour vérifier / affiner le placement
 print(string.format("[Skin] %s installé dans %s | longueur %.3f -> %.3f studs | soudures : %s",
-	NOM, parent:GetFullName(), longueurAvant, maTaille.X, tostring(soude)))
+	nom, parent:GetFullName(), longueurAvant, maTaille.X, tostring(soude)))
+print(string.format("[Skin] verre du viseur recentré de (hauteur %.3f, côté %.3f) studs%s",
+	decalageVerre.Y, decalageVerre.Z, if refVerre then "" else " -- Body_Cyan introuvable dans Phantom P"))
 if refRoot then
 	local r = refRepere:ToObjectSpace(refRoot.CFrame).Position
 	local p = POIGNEE * maTaille.X / 3.616
 	print(string.format("[Skin] Phantom P : taille %.3f x %.3f x %.3f | Root (%.3f, %.3f, %.3f)",
 		refTaille.X, refTaille.Y, refTaille.Z, r.X, r.Y, r.Z))
 	print(string.format("[Skin] %s : taille %.3f x %.3f x %.3f | poignée (%.3f, %.3f, %.3f) | écart %.3f studs",
-		NOM, maTaille.X, maTaille.Y, maTaille.Z, p.X, p.Y, p.Z, (p - r).Magnitude))
+		nom, maTaille.X, maTaille.Y, maTaille.Z, p.X, p.Y, p.Z, (p - r).Magnitude))
 end

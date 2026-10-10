@@ -3,7 +3,7 @@
 Convention du jeu :
   - canon vers +X, haut vers +Z, origine sur la poignée
   - même structure que « Phantom P » dans Roblox :
-        Corps    -> Body_<Couleur>           + Body_Contour
+        Corps    -> Body_<Couleur>           + Body_Contour (Body_Verre = verre du viseur)
         Chargeur -> Magazine_<Couleur>       + Magazine_Contour
         Gachette -> Trigger                  + Trigger_Contour
         Levier   -> ChargingHandle_<Couleur> + ChargingHandle_Contour
@@ -86,7 +86,11 @@ def pieces():
         _cyl_x(bm, 0.66, 1.06, 0.88, 0.075),                        # tube de crosse
         _box(bm, 1.04, 2.95, 1.06, 1.10, 0.065),                    # rail
         *[_box(bm, x, x + 0.06, 1.10, 1.14, 0.07) for x in [1.08 + 0.12 * i for i in range(16)]],
-        _prism(bm, [(1.42, 1.12), (1.42, 1.30), (1.46, 1.343), (1.82, 1.343), (1.86, 1.30), (1.86, 1.12)], 0.11),
+        # viseur point rouge : boîtier creux (on voit à travers en visée)
+        _box(bm, 1.44, 1.78, 1.12, 1.145, 0.11),                    # semelle
+        _prism(bm, [(1.46, 1.315), (1.49, 1.343), (1.73, 1.343), (1.76, 1.315)], 0.11),  # toit
+        _box(bm, 1.46, 1.76, 1.145, 1.315, 0.008, 0.102),           # flanc gauche
+        _box(bm, 1.46, 1.76, 1.145, 1.315, 0.008, -0.102),          # flanc droit
         _box(bm, 1.48, 1.80, 0.88, 0.98, 0.006, -0.111),            # fenêtre d'éjection (droite)
         *[_box(bm, x0, x1, 0.82, 0.92, 0.135) for x0, x1 in ((2.20, 2.40), (2.48, 2.68), (2.76, 2.86))],
         _cyl_x(bm, 3.36, 3.616, 0.90, 0.095),                       # frein de bouche
@@ -104,10 +108,14 @@ def pieces():
         _cyl_x(bm, 3.54, 3.57, 0.90, 0.10),
         _box(bm, 0.20, 0.60, 1.00, 1.035, 0.152),                   # liseré sur la crosse
     ))
-    add("Body_Lentille", lambda bm: (
-        _box(bm, 1.410, 1.425, 1.16, 1.30, 0.08),                   # verre arrière (néon)
-        _box(bm, 1.855, 1.870, 1.16, 1.30, 0.08),                   # verre avant
+    # cadre intérieur + verre, à l'arrière du viseur (côté œil) pour une grande fenêtre
+    add("Body_Rose_Cadre", lambda bm: (
+        _box(bm, 1.47, 1.49, 1.145, 1.159, 0.094),
+        _box(bm, 1.47, 1.49, 1.301, 1.315, 0.094),
+        _box(bm, 1.47, 1.49, 1.159, 1.301, 0.003, 0.091),
+        _box(bm, 1.47, 1.49, 1.159, 1.301, 0.003, -0.091),
     ), 0.0)
+    add("Body_Verre", lambda bm: _box(bm, 1.478, 1.482, 1.159, 1.301, 0.088), 0.0)  # verre transparent
 
     # ---- Chargeur
     add("Magazine_Sakura", lambda bm: _prism(bm, [(1.53, 0.60), (1.83, 0.60), (1.93, 0.10), (1.63, 0.10)], 0.085))
@@ -157,7 +165,8 @@ def _inverted_hull(name, sources, thickness_m):
     bm = bmesh.new()
     for ob in sources:
         bm.from_mesh(ob.data)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-6)
+    # pas de remove_doubles : souder des pièces qui se touchent fausse les normales
+    # (le contour du viseur venait boucher la visée)
     bm.normal_update()
     moves = []
     for v in bm.verts:
@@ -188,12 +197,25 @@ def build():
     return objs
 
 
+def _merge(objs, src, dst):
+    """Fusionne l'objet src dans dst (même couleur)."""
+    bpy.ops.object.select_all(action="DESELECT")
+    objs[src].select_set(True)
+    objs[dst].select_set(True)
+    bpy.context.view_layer.objects.active = objs[dst]
+    bpy.ops.object.join()
+    del objs[src]
+
+
 def add_contours(objs):
     """Ajoute <Préfixe>_Contour pour chaque groupe."""
     out = {}
     for prefix in GROUPS:
-        src = [o for n, o in objs.items() if n.split("_")[0] == prefix and n != "Root"]
+        # pas de contour sur le verre : il se verrait à travers et boucherait la visée
+        src = [o for n, o in objs.items() if n.split("_")[0] == prefix and n != "Root" and not n.endswith(("_Verre", "_Cadre"))]
         out[f"{prefix}_Contour"] = _inverted_hull(f"{prefix}_Contour", src, CONTOUR * STUD)
+    # le cadre du viseur rejoint les autres pièces roses (sans contour)
+    _merge(objs, "Body_Rose_Cadre", "Body_Rose")
     return out
 
 

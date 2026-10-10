@@ -33,7 +33,7 @@ COLORS = {
     "Blanc": (245, 241, 245),
     "Rose": (255, 92, 168),
     "Noir": (30, 26, 34),
-    "Lentille": (255, 120, 200),
+    "Verre": (255, 170, 215),
     "Contour": (14, 10, 16),
 }
 
@@ -131,9 +131,8 @@ def assign_material(ob, tex_path=None):
         nt.links.new(tex.outputs["Color"], p.inputs["Base Color"])
     else:
         p.inputs["Base Color"].default_value = c
-    if key == "Lentille":
-        p.inputs["Emission Color"].default_value = c
-        p.inputs["Emission Strength"].default_value = 4.0
+    if key == "Verre":  # verre teinté transparent (Transparency réglée aussi par le script Roblox)
+        p.inputs["Alpha"].default_value = 0.22
     if key == "Contour":
         # aperçu Blender uniquement : la coque n'est visible que de l'intérieur
         # (dans Roblox les MeshParts sont à simple face, ça marche tout seul)
@@ -237,7 +236,7 @@ def main():
             assign_material(ob, tex.get(name))
     objs["Root"].hide_render = True
     for name, ob in objs.items():
-        if name.endswith("_Contour"):  # le contour ne doit pas faire d'ombre dans l'aperçu
+        if name.endswith("_Contour") or name.endswith("_Verre"):  # le contour ne doit pas faire d'ombre dans l'aperçu
             ob.visible_shadow = ob.visible_diffuse = ob.visible_glossy = ob.visible_transmission = False
     root = V.organize(objs, MODEL)
 
