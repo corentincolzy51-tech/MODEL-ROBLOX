@@ -4,6 +4,7 @@
 	1. Importe les fichiers Phantom_<Skin>.fbx (Accueil > Importer 3D, « Scale Unit » = Stud).
 	   -> ou sélectionne des skins déjà installés pour les recaler.
 	2. Sélectionne TOUS ces modèles dans l'Explorer (Ctrl + clic).
+	   (les modèles qui ne sont pas des skins, comme Phantom P, sont ignorés)
 	3. Colle tout le script dans la barre de commande (Affichage > Barre de commande), puis Entrée.
 
 	Pour chaque modèle, le script :
@@ -372,10 +373,16 @@ end
 local selection = {}
 for _, m in ipairs(Selection:Get()) do
 	if m:IsA("Model") then
-		table.insert(selection, m)
+		-- sécurité : on ne touche qu'aux skins connus (pièce Body_<Skin>), jamais à Phantom P,
+		-- aux « Phantom A faire » ou à une autre arme sélectionnée par erreur
+		if m == reference or not skinDe(m) then
+			warn("[Skin] ignoré (ce n'est pas un skin connu) : " .. m:GetFullName())
+		else
+			table.insert(selection, m)
+		end
 	end
 end
-assert(#selection > 0, "Sélectionne d'abord les modèles importés (ou les skins à recaler) dans l'Explorer")
+assert(#selection > 0, "Aucun skin à installer : sélectionne les modèles importés (Phantom <Skin>) dans l'Explorer")
 -- les skins déjà nommés « Phantom S N » d'abord (ils gardent leur numéro), puis l'ordre du catalogue
 table.sort(selection, function(a, b)
 	local ka = if a.Parent == parent and a.Name:match("^" .. PREFIXE_NOM .. "%d+$") then 0 else 1
