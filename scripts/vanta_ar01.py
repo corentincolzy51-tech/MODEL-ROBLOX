@@ -1,186 +1,225 @@
-"""Géométrie de la VANTA AR-01 (fusil d'assaut style AK) pour Blender.
+"""Géométrie de la VANTA AR-01 (style « Phantom » : fusil moderne + viseur point rouge).
 
 Convention du jeu :
   - canon vers +X, haut vers +Z, origine sur la poignée
-  - pièces séparées : Body, Magazine, Trigger, ChargingHandle
-  - taille finale : 1,096 x 0,407 x 0,112 m (3,616 x 1,343 x 0,369 studs)
+  - même structure que « Phantom P » dans Roblox :
+        Corps    -> Body_<Couleur>           + Body_Contour
+        Chargeur -> Magazine_<Couleur>       + Magazine_Contour
+        Gachette -> Trigger                  + Trigger_Contour
+        Levier   -> ChargingHandle_<Couleur> + ChargingHandle_Contour
+        Root     -> petit cube sur la poignée (repère de prise en main)
+  - un objet = une couleur (ou une texture pour la partie « Sakura »)
+  - taille : 3,616 x 1,343 x 0,369 studs = 1,096 x 0,407 x 0,112 m
 
-Les profils sont dessinés en vue de côté (X, Z) en "mm de design"
-puis extrudés en épaisseur (Y). Chaque morceau reçoit un nom de matériau,
-utilisé ensuite par le skin.
+Les profils sont dessinés en vue de côté (X, Z) en studs, puis extrudés
+en épaisseur (Y, demi-largeur en studs).
 """
 import math
+
 import bpy  # noqa: F401  (doit être importé avant bmesh)
 import bmesh
 from mathutils import Matrix, Vector
 
-TARGET = Vector((1.096, 0.112, 0.407))  # X longueur, Y épaisseur, Z hauteur
-GRIP_POINT = (325.0, -55.0)             # centre de la poignée (mm design)
-MM = 0.001
-_scale = Vector((1, 1, 1))  # rempli par _normalize
+STUD = 1.096 / 3.616                  # mètres par stud (d'après le tableau des tailles)
+TARGET = Vector((3.616, 0.369, 1.343))  # studs : longueur, épaisseur, hauteur
+GRIP_POINT = (1.17, 0.42)             # centre de la poignée (studs design)
+CONTOUR = 0.022                       # épaisseur du contour noir (studs)
+GROUPS = {"Body": "Corps", "Magazine": "Chargeur", "Trigger": "Gachette", "ChargingHandle": "Levier"}
+_scale = Vector((1, 1, 1))
 
 
 def design_to_world(x, z):
-    """Convertit un point du profil (mm design) en mètres monde."""
-    return ((x - GRIP_POINT[0]) * MM * _scale.x, (z - GRIP_POINT[1]) * MM * _scale.z)
+    """Point du profil (studs design) -> mètres monde (origine poignée)."""
+    return ((x - GRIP_POINT[0]) * STUD * _scale.x, (z - GRIP_POINT[1]) * STUD * _scale.z)
 
 
-def _prism(bm, profile, y0, y1):
-    """Extrude un polygone XZ (mm) entre y0 et y1 (m)."""
-    low = [bm.verts.new((x * MM, y0, z * MM)) for x, z in profile]
-    face = bm.faces.new(low)
+# ---------------------------------------------------------------- primitives
+def _prism(bm, profile, half, y_center=0.0):
+    y0, y1 = (y_center - half) * STUD, (y_center + half) * STUD
+    face = bm.faces.new([bm.verts.new((x * STUD, y0, z * STUD)) for x, z in profile])
     res = bmesh.ops.extrude_face_region(bm, geom=[face])
     top = [v for v in res["geom"] if isinstance(v, bmesh.types.BMVert)]
     bmesh.ops.translate(bm, verts=top, vec=(0, y1 - y0, 0))
-    bm.normal_update()
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
 
 
-def _cyl(bm, x0, x1, z, r, y=0.0, segs=16):
-    """Cylindre le long de X (valeurs x0, x1, z, r en mm)."""
-    length = (x1 - x0) * MM
-    mat = Matrix.Translation(((x0 + x1) / 2 * MM, y, z * MM)) @ Matrix.Rotation(math.radians(90), 4, "Y")
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r * MM,
-                          radius2=r * MM, depth=length, matrix=mat)
+def _box(bm, x0, x1, z0, z1, half, y_center=0.0):
+    _prism(bm, [(x0, z0), (x0, z1), (x1, z1), (x1, z0)], half, y_center)
 
 
-def _cyl_y(bm, y0, y1, x, z, r, segs=12):
-    """Cylindre le long de Y (y en m, x/z/r en mm)."""
-    mat = Matrix.Translation((x * MM, (y0 + y1) / 2, z * MM)) @ Matrix.Rotation(math.radians(90), 4, "X")
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r * MM,
-                          radius2=r * MM, depth=abs(y1 - y0), matrix=mat)
+def _cyl_x(bm, x0, x1, z, r, segs=16):
+    mat = Matrix.Translation(((x0 + x1) / 2 * STUD, 0, z * STUD)) @ Matrix.Rotation(math.radians(90), 4, "Y")
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r * STUD, radius2=r * STUD,
+                          depth=(x1 - x0) * STUD, matrix=mat)
 
 
-def _piece(name, mat_name, build, bevel=0.0025):
+def _cyl_y(bm, x, z, r, half, segs=14):
+    mat = Matrix.Translation((x * STUD, 0, z * STUD)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r * STUD, radius2=r * STUD,
+                          depth=2 * half * STUD, matrix=mat)
+
+
+# ------------------------------------------------------------------ le fusil
+def pieces():
+    """Liste (objet_final, fonction_de_construction, biseau_studs)."""
+    P = []
+    add = lambda name, fn, bevel=0.014: P.append((name, fn, bevel))
+
+    # ---- Corps : surfaces décorées (texture Sakura)
+    add("Body_Sakura", lambda bm: (
+        # crosse
+        _prism(bm, [(0.05, 0.50), (0.05, 1.00), (0.12, 1.04), (0.62, 1.00), (0.70, 0.94),
+                    (0.70, 0.80), (0.45, 0.74), (0.30, 0.60), (0.14, 0.50)], 0.15),
+        # carcasse inférieure + puits de chargeur
+        _prism(bm, [(1.04, 0.64), (1.04, 0.84), (2.02, 0.84), (2.02, 0.70), (1.88, 0.62),
+                    (1.88, 0.52), (1.50, 0.52), (1.50, 0.64)], 0.11),
+        # carcasse supérieure
+        _prism(bm, [(1.04, 0.84), (1.04, 1.02), (1.08, 1.06), (2.02, 1.06), (2.02, 0.84)], 0.105),
+        # garde-main
+        _prism(bm, [(2.02, 0.72), (2.02, 1.06), (2.92, 1.06), (2.96, 1.02), (2.96, 0.76), (2.92, 0.72)], 0.13),
+        # poignée
+        _prism(bm, [(1.12, 0.64), (1.36, 0.64), (1.31, 0.50), (1.22, 0.18), (1.03, 0.16),
+                    (0.99, 0.22), (1.10, 0.50)], 0.085),
+    ))
+    # ---- Corps : pièces de couleur unie
+    add("Body_Noir", lambda bm: (
+        _box(bm, 0.0, 0.07, 0.49, 1.01, 0.155),                     # plaque de couche
+        _cyl_x(bm, 0.66, 1.06, 0.88, 0.075),                        # tube de crosse
+        _box(bm, 1.04, 2.95, 1.06, 1.10, 0.065),                    # rail
+        *[_box(bm, x, x + 0.06, 1.10, 1.14, 0.07) for x in [1.08 + 0.12 * i for i in range(16)]],
+        _prism(bm, [(1.42, 1.12), (1.42, 1.30), (1.46, 1.343), (1.82, 1.343), (1.86, 1.30), (1.86, 1.12)], 0.11),
+        _box(bm, 1.48, 1.80, 0.88, 0.98, 0.006, -0.111),            # fenêtre d'éjection (droite)
+        *[_box(bm, x0, x1, 0.82, 0.92, 0.135) for x0, x1 in ((2.20, 2.40), (2.48, 2.68), (2.76, 2.86))],
+        _cyl_x(bm, 3.36, 3.616, 0.90, 0.095),                       # frein de bouche
+        _prism(bm, [(1.30, 0.53), (1.30, 0.56), (1.50, 0.56), (1.50, 0.64), (1.53, 0.64), (1.53, 0.53)], 0.03),
+    ))
+    add("Body_Blanc", lambda bm: (
+        _cyl_x(bm, 2.95, 3.40, 0.90, 0.06),                         # canon
+        _box(bm, 1.10, 1.30, 0.90, 0.98, 0.112),                    # assistance de fermeture
+    ))
+    add("Body_Rose", lambda bm: (
+        _box(bm, 1.00, 1.06, 0.66, 1.06, 0.115),                    # plaque arrière de carcasse
+        _cyl_y(bm, 2.12, 0.95, 0.045, 0.14),                        # bouton du garde-main
+        _cyl_x(bm, 2.94, 3.00, 0.90, 0.085),                        # bague avant
+        _cyl_x(bm, 3.42, 3.45, 0.90, 0.10),                         # bagues du frein
+        _cyl_x(bm, 3.54, 3.57, 0.90, 0.10),
+        _box(bm, 0.20, 0.60, 1.00, 1.035, 0.152),                   # liseré sur la crosse
+    ))
+    add("Body_Lentille", lambda bm: (
+        _box(bm, 1.410, 1.425, 1.16, 1.30, 0.08),                   # verre arrière (néon)
+        _box(bm, 1.855, 1.870, 1.16, 1.30, 0.08),                   # verre avant
+    ), 0.0)
+
+    # ---- Chargeur
+    add("Magazine_Sakura", lambda bm: _prism(bm, [(1.53, 0.60), (1.83, 0.60), (1.93, 0.10), (1.63, 0.10)], 0.085))
+    add("Magazine_Rose", lambda bm: (
+        _prism(bm, [(1.585, 0.33), (1.885, 0.33), (1.895, 0.28), (1.595, 0.28)], 0.088),
+        _prism(bm, [(1.565, 0.43), (1.865, 0.43), (1.875, 0.38), (1.575, 0.38)], 0.088),
+        _prism(bm, [(1.625, 0.14), (1.925, 0.14), (1.93, 0.10), (1.63, 0.10)], 0.09),
+    ), 0.006)
+    add("Magazine_Noir", lambda bm: _box(bm, 1.61, 1.96, 0.0, 0.10, 0.095))
+
+    # ---- Gâchette
+    add("Trigger", lambda bm: _prism(bm, [(1.38, 0.64), (1.42, 0.64), (1.435, 0.60), (1.415, 0.565),
+                                          (1.395, 0.57), (1.405, 0.60)], 0.014), 0.004)
+
+    # ---- Levier d'armement (poignée en T à l'arrière du rail)
+    add("ChargingHandle_Blanc", lambda bm: _box(bm, 0.94, 1.06, 1.00, 1.06, 0.06), 0.008)
+    add("ChargingHandle_Rose", lambda bm: _box(bm, 0.94, 1.00, 1.00, 1.06, 0.1845), 0.008)
+
+    # ---- Root : repère sur la poignée
+    add("Root", lambda bm: _box(bm, GRIP_POINT[0] - 0.1, GRIP_POINT[0] + 0.1,
+                                GRIP_POINT[1] - 0.1, GRIP_POINT[1] + 0.1, 0.1), 0.0)
+    return P
+
+
+def _make(name, fn, bevel):
     me = bpy.data.meshes.new(name)
     bm = bmesh.new()
-    build(bm)
+    fn(bm)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     bm.to_mesh(me)
     bm.free()
     ob = bpy.data.objects.new(name, me)
     bpy.context.collection.objects.link(ob)
-    mat = bpy.data.materials.get(mat_name) or bpy.data.materials.new(mat_name)
-    me.materials.append(mat)
     if bevel:
         mod = ob.modifiers.new("Bevel", "BEVEL")
-        mod.width = bevel
+        mod.width = bevel * STUD
         mod.segments = 2
         mod.limit_method = "ANGLE"
         mod.angle_limit = math.radians(35)
-        mod.harden_normals = True
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.modifier_apply(modifier=mod.name)
     return ob
 
 
-def _mag_profile():
-    """Chargeur banane : arc de cercle qui part vers l'avant."""
-    cx, cz, r, half = 925.0, 8.0, 450.0, 34.0
-    a0, a1, n = math.radians(180), math.radians(208), 14
-    rear, front = [], []
-    for i in range(n + 1):
-        a = a0 + (a1 - a0) * i / n
-        w = half + 4.0 * i / n  # s'élargit un peu vers le bas
-        rear.append((cx + (r + w) * math.cos(a), cz + (r + w) * math.sin(a)))
-        front.append((cx + (r - w) * math.cos(a), cz + (r - w) * math.sin(a)))
-    return rear + front[::-1]
-
-
-def _mag_floorplate():
-    """Semelle du chargeur, collée au bas de l'arc."""
-    cx, cz, r, a = 925.0, 8.0, 450.0, math.radians(208)
-    t = (-math.sin(a), math.cos(a))  # direction "vers le bas" le long de l'arc
-    pts = []
-    for rad, push in ((r + 42, -2), (r + 42, 9), (r - 42, 9), (r - 42, -2)):
-        x, z = cx + rad * math.cos(a), cz + rad * math.sin(a)
-        pts.append((x + t[0] * push, z + t[1] * push))
-    return pts
+def _inverted_hull(name, sources, thickness_m):
+    """Contour façon cartoon : coque gonflée, faces retournées."""
+    bm = bmesh.new()
+    for ob in sources:
+        bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-6)
+    bm.normal_update()
+    moves = []
+    for v in bm.verts:
+        if not v.link_faces:
+            moves.append(Vector())
+            continue
+        n = Vector()
+        for f in v.link_faces:
+            n += f.normal * f.calc_area()
+        n = n.normalized() if n.length > 1e-9 else v.normal
+        d = min(max(n.dot(f.normal), 0.35) for f in v.link_faces)
+        moves.append(n * thickness_m / d)
+    for v, m in zip(bm.verts, moves):
+        v.co += m
+    bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(ob)
+    return ob
 
 
 def build():
-    """Construit les 4 objets et renvoie {nom: objet}."""
-    parts = {}
-
-    # ---------- Body : plusieurs morceaux joints ----------
-    body_pieces = []
-
-    def add(name, mat, fn, bevel=0.0025):
-        body_pieces.append(_piece(name, mat, fn, bevel))
-
-    # crosse + plaque de couche
-    add("stock", "Skin", lambda bm: _prism(bm, [(14, -80), (14, 40), (250, 57), (262, 57), (262, 4), (238, -3)], -0.035, 0.035))
-    add("buttplate", "Accent", lambda bm: _prism(bm, [(0, -82), (0, 41), (16, 41), (16, -81)], -0.036, 0.036), 0.002)
-    # carcasse + couvercle
-    add("receiver", "Skin", lambda bm: _prism(bm, [(255, 0), (255, 56), (272, 62), (522, 62), (536, 58), (536, 0)], -0.028, 0.028))
-    # hausse (rear sight)
-    add("rearsight", "Metal", lambda bm: _prism(bm, [(530, 50), (530, 70), (548, 80), (584, 77), (590, 60), (590, 50)], -0.02, 0.02))
-    # poignée pistolet
-    add("grip", "Skin", lambda bm: _prism(bm, [(318, 2), (362, 2), (354, -30), (340, -108), (300, -114), (290, -102), (306, -30)], -0.022, 0.022))
-    # pontet (trigger guard)
-    add("guard", "Metal", lambda bm: _prism(bm, [(350, -29), (422, -29), (422, 0), (434, 0), (434, -37), (350, -37)], -0.009, 0.009), 0.0015)
-    # garde-main inférieur et supérieur
-    add("handguard_low", "Skin", lambda bm: _prism(bm, [(540, 6), (540, 50), (716, 50), (716, 17), (700, 9), (562, 3)], -0.032, 0.032))
-    add("handguard_up", "Skin", lambda bm: _prism(bm, [(592, 50), (592, 70), (604, 77), (712, 77), (722, 70), (722, 50)], -0.022, 0.022))
-    # canon blanc + bloc d'emprunt + guidon + frein de bouche
-    add("barrel", "Metal", lambda bm: _cyl(bm, 530, 862, 42, 10), 0)
-    add("gasblock", "Dark", lambda bm: _prism(bm, [(718, 30), (718, 80), (764, 70), (764, 30)], -0.016, 0.016))
-    add("gastube", "Metal", lambda bm: _cyl(bm, 760, 790, 66, 7), 0)
-    add("frontsight", "Dark", lambda bm: _prism(bm, [(798, 28), (798, 60), (810, 98), (824, 98), (828, 60), (838, 56), (838, 28)], -0.013, 0.013))
-    add("muzzle", "Dark", lambda bm: _prism(bm, [(855, 28), (855, 56), (888, 56), (880, 28)], -0.014, 0.014))
-    add("rod", "Metal", lambda bm: _cyl(bm, 610, 800, 24, 3.5, segs=10), 0)
-    # sélecteur (levier côté droit)
-    add("selector", "Metal", lambda bm: _prism(bm, [(300, 30), (300, 42), (440, 50), (440, 42)], -0.031, -0.027), 0.001)
-
-    bpy.ops.object.select_all(action="DESELECT")
-    for ob in body_pieces:
-        ob.select_set(True)
-    bpy.context.view_layer.objects.active = body_pieces[0]
-    for ob in body_pieces:
-        bpy.context.view_layer.objects.active = ob
-        for m in ob.modifiers:
-            bpy.ops.object.modifier_apply(modifier=m.name)
-    bpy.context.view_layer.objects.active = body_pieces[0]
-    bpy.ops.object.join()
-    body = bpy.context.object
-    body.name = body.data.name = "Body"
-    parts["Body"] = body
-
-    # ---------- Magazine ----------
-    mag = _piece("Magazine", "Skin", lambda bm: (
-        _prism(bm, _mag_profile(), -0.024, 0.024),
-        _prism(bm, _mag_floorplate(), -0.026, 0.026),  # semelle
-    ))
-    parts["Magazine"] = mag
-
-    # ---------- Trigger ----------
-    parts["Trigger"] = _piece("Trigger", "Metal", lambda bm: _prism(
-        bm, [(380, 2), (390, 2), (393, -12), (386, -25), (378, -24), (384, -12)], -0.004, 0.004), 0.001)
-
-    # ---------- ChargingHandle (côté droit = -Y) ----------
-    def handle(bm):
-        _prism(bm, [(420, 38), (420, 50), (512, 50), (512, 38)], -0.032, -0.027)  # plaque du porte-culasse
-        _cyl_y(bm, -0.072, -0.03, 500, 44, 5)                                        # tige
-        _cyl_y(bm, -0.077, -0.066, 500, 44, 8)                                       # bouton
-    parts["ChargingHandle"] = _piece("ChargingHandle", "Metal", handle, 0.001)
-
-    for ob in parts.values():
-        bpy.context.view_layer.objects.active = ob
-        for m in list(ob.modifiers):
-            bpy.ops.object.modifier_apply(modifier=m.name)
-
-    _normalize(parts)
-    return parts
+    """Construit tous les objets. Renvoie {nom: objet} (sans les contours)."""
+    objs = {name: _make(name, fn, bevel) for name, fn, bevel in pieces()}
+    _normalize(objs)
+    return objs
 
 
-def _normalize(parts):
-    """Met l'arme aux dimensions cibles et place l'origine sur la poignée."""
-    pts = [ob.matrix_world @ v.co for ob in parts.values() for v in ob.data.vertices]
-    lo = Vector((min(p[i] for p in pts) for i in range(3)))
-    hi = Vector((max(p[i] for p in pts) for i in range(3)))
-    size = hi - lo
-    scale = Vector((TARGET[i] / size[i] for i in range(3)))
+def add_contours(objs):
+    """Ajoute <Préfixe>_Contour pour chaque groupe."""
+    out = {}
+    for prefix in GROUPS:
+        src = [o for n, o in objs.items() if n.split("_")[0] == prefix and n != "Root"]
+        out[f"{prefix}_Contour"] = _inverted_hull(f"{prefix}_Contour", src, CONTOUR * STUD)
+    return out
+
+
+def organize(objs, model_name):
+    """Empties Model > Corps/Chargeur/Gachette/Levier comme dans Roblox."""
+    root = bpy.data.objects.new(model_name, None)
+    bpy.context.collection.objects.link(root)
+    empties = {}
+    for prefix, gname in GROUPS.items():
+        e = bpy.data.objects.new(gname, None)
+        bpy.context.collection.objects.link(e)
+        e.parent = root
+        empties[prefix] = e
+    for name, ob in objs.items():
+        ob.parent = root if name == "Root" else empties[name.split("_")[0]]
+    return root
+
+
+def _normalize(objs):
+    """Taille exacte (sans le Root) et origine sur la poignée."""
+    pts = [v.co for n, ob in objs.items() if n != "Root" for v in ob.data.vertices]
+    size = Vector((max(p[i] for p in pts) - min(p[i] for p in pts) for i in range(3)))
+    scale = Vector((TARGET[i] * STUD / size[i] for i in range(3)))
     _scale[:] = scale
-    pivot = Vector((GRIP_POINT[0] * MM, 0.0, GRIP_POINT[1] * MM))
+    pivot = Vector((GRIP_POINT[0] * STUD, 0.0, GRIP_POINT[1] * STUD))
     m = Matrix.Diagonal((*scale, 1.0)) @ Matrix.Translation(-pivot)
-    for ob in parts.values():
+    for ob in objs.values():
         ob.data.transform(m)
         ob.data.update()
-        ob.location = (0, 0, 0)
