@@ -5,9 +5,9 @@ Fiche pour l'IA qui modifie les scripts dans Roblox Studio. Elle répond au brie
 
 | Skin | Rareté | Dossier | Effet |
 |---|---|---|---|
-| `Phantom Pulse` | Rare | `Armes › Phantom › Rare` | 16 segments néon parcourus par une onde de lumière ; éclat au tir ; les segments se rallument un à un pendant le rechargement |
-| `Phantom Inferno` | Épique | `Armes › Phantom › Épique` | fissures de lave qui pulsent et scintillent, braises qui montent, lueur orange ; gerbe d'étincelles au tir ; fumée au rechargement |
-| `Phantom Apex` | Légendaire | `Armes › Phantom › Légendaire` | noyau d'énergie qui pulse (démarrage en clignotant à l'équipement), 3 anneaux hexagonaux qui tournent autour du canon (plus vite au tir) ; anneau d'énergie à la bouche ; **inspection (F)** ; **effet d'élimination** (colonne de lumière, onde au sol, éclats) |
+| `Phantom Pulse` | Rare | `Armes › Phantom › Rare` | ~45 segments néon parcourus par une onde de lumière, lueur cyan ; éclat au tir ; les segments se rallument un à un pendant le rechargement |
+| `Phantom Inferno` | Épique | `Armes › Phantom › Épique` | arme volcanique ; lave qui pulse et scintille, braises, petites flammes à la bouche (repère `Bouche`) ; gerbe de feu au tir ; fumée au rechargement |
+| `Phantom Apex` | Légendaire | `Armes › Phantom › Légendaire` | fusil à rails ; faisceau d'énergie qui grésille avec arcs électriques (pièce `Body_ApexNoyau00`), 4 bobines qui tournent (plus vite au tir), démarrage en clignotant ; anneau d'énergie à la bouche ; **inspection (F)** ; **effet d'élimination** (colonne de lumière, onde au sol, éclats) |
 
 ---
 

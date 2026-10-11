@@ -54,9 +54,9 @@ Les 8 nouveaux FBX d'un coup : `weapons/VANTA_AR-01/Skins_AR-01_FBX.zip` (Sakura
 
 | Skin | Rareté | Modèle | Effets (module `roblox/EffetsSkins.lua`) |
 |---|---|---|---|
-| Pulse | Rare | Phantom + 16 segments néon | onde de lumière, éclat au tir, rallumage au rechargement |
-| Inferno | Épique | Phantom + fissures de lave, ailettes, cache-flamme | lave qui pulse, braises, étincelles au tir, fumée |
-| Apex | Légendaire | modèle exclusif (crosse squelette, noyau, anneaux) | noyau, anneaux qui tournent, inspection F, effet d'élimination |
+| Pulse | Rare | Phantom + ~45 segments néon, cellules d'énergie | onde de lumière, lueur, éclat au tir, rallumage au rechargement |
+| Inferno | Épique | arme volcanique : crête d'obsidienne, fournaise, chambre de magma, lame, crosse en roche | lave qui pulse, braises, flammes à la bouche, gerbe de feu au tir, fumée |
+| Apex | Légendaire | fusil à rails : faisceau d'énergie, bobines, coque sculptée, aileron, crosse en lames flottantes | faisceau qui grésille + arcs électriques, bobines qui tournent, inspection F, effet d'élimination |
 
 - FBX : `weapons/VANTA_AR-01/Skins_AR-01_RareEpiqueLegendaire_FBX.zip`
 - Intégration dans les scripts du jeu : `roblox/INTEGRATION_EFFETS.md` (réponse à `roblox/BRIEFING_SKINS_RARES.md`)

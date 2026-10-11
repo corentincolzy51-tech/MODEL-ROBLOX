@@ -35,6 +35,7 @@ local TAG = "EffetSkin"
 local TOUCHE_INSPECTION = Enum.KeyCode.F
 local TEX_ETINCELLE = "rbxasset://textures/particles/sparkles_main.dds"
 local TEX_FUMEE = "rbxasset://textures/particles/smoke_main.dds"
+local TEX_FEU = "rbxasset://textures/particles/fire_main.dds"
 
 local joueur = Players.LocalPlayer
 local suivis = {} -- [Model] = état d'animation (copies présentes dans workspace)
@@ -102,6 +103,9 @@ local function lireNeons(modele)
 				local info = { part = p, h = h, s = s, v = math.max(v, 0.05) }
 				if num ~= "" then
 					info.index = tonumber(num)
+					if info.index == 0 then
+						info.faisceau = true -- « *_<NeonAnime>00 » : faisceau (Apex), ne tourne pas
+					end
 					table.insert(numerotes, info)
 				else
 					table.insert(uniques, info)
@@ -154,7 +158,52 @@ local function decorer(etat)
 			l.Parent = lave
 			etat.lumiere = l
 		end
+		-- petites flammes qui lèchent la bouche de l'embout fournaise
+		local root = etat.modele.PrimaryPart
+		local bouche = root and root:FindFirstChild("Bouche")
+		if bouche then
+			local f = Instance.new("ParticleEmitter")
+			f.Name = "Flammes"
+			f.Texture = TEX_FEU
+			f.Rate = 14
+			f.Lifetime = NumberRange.new(0.25, 0.45)
+			f.Speed = NumberRange.new(0.3 * s, 0.8 * s)
+			f.Acceleration = Vector3.new(0, 2.5 * s, 0)
+			f.SpreadAngle = Vector2.new(20, 20)
+			f.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.12 * s), NumberSequenceKeypoint.new(1, 0.02 * s) })
+			f.Color = ColorSequence.new(Color3.fromRGB(255, 170, 60), Color3.fromRGB(255, 60, 10))
+			f.LightEmission = 0.9
+			f.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+			f.Parent = bouche
+		end
+	elseif effet == "Pulse" then
+		local cellule = plusGrande(etat.uniques)
+		if cellule then
+			local l = Instance.new("PointLight")
+			l.Name = "Lueur"
+			l.Color = Color3.fromRGB(0, 220, 255)
+			l.Range = 3 * s
+			l.Brightness = 0.5
+			l.Parent = cellule
+			etat.lumiere = l
+		end
 	elseif effet == "Apex" then
+		for _, info in ipairs(etat.numerotes) do
+			if info.faisceau then -- arcs électriques le long du faisceau
+				local e = Instance.new("ParticleEmitter")
+				e.Name = "Arcs"
+				e.Texture = TEX_ETINCELLE
+				e.Rate = 22
+				e.Lifetime = NumberRange.new(0.08, 0.2)
+				e.Speed = NumberRange.new(0.5 * s, 2 * s)
+				e.SpreadAngle = Vector2.new(180, 180)
+				e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.06 * s), NumberSequenceKeypoint.new(1, 0) })
+				e.Color = ColorSequence.new(Color3.fromRGB(200, 250, 255), Color3.fromRGB(80, 200, 255))
+				e.LightEmission = 1
+				e.Parent = info.part
+				etat.arcs = e
+			end
+		end
 		local noyau = plusGrande(etat.uniques)
 		if noyau then
 			local l = Instance.new("PointLight")
@@ -217,7 +266,10 @@ local function animer(etat, t, dt)
 			couleur(seg, f * (0.3 + 0.7 * boot))
 		end
 		for _, u in ipairs(etat.uniques) do
-			couleur(u, (0.75 + 0.25 * math.sin(t * 2)) * (0.3 + 0.7 * boot))
+			couleur(u, math.max(0.75 + 0.25 * math.sin(t * 2), boost) * (0.3 + 0.7 * boot))
+		end
+		if etat.lumiere then
+			etat.lumiere.Brightness = 0.3 + 0.2 * math.sin(t * 2) + 1.2 * boost
 		end
 	elseif etat.effet == "Inferno" then
 		for k, u in ipairs(etat.uniques) do
@@ -243,10 +295,17 @@ local function animer(etat, t, dt)
 		if etat.lumiere then
 			etat.lumiere.Brightness = 0.5 + 0.6 * f + boost
 		end
+		if etat.arcs then
+			etat.arcs.Rate = enRecharge and 4 or (22 + 120 * boost)
+		end
 		for i, anneau in ipairs(etat.numerotes) do
-			couleur(anneau, 0.6 + 0.4 * math.max(f, boost))
 			local p = anneau.part
-			if p.Anchored and p.Parent then -- vue FPS : les anneaux tournent autour du canon
+			if anneau.faisceau then
+				couleur(anneau, math.max(f * (0.75 + 0.25 * math.noise(t * 9, 3.1)), boost))
+			else
+				couleur(anneau, 0.6 + 0.4 * math.max(f, boost))
+			end
+			if not anneau.faisceau and p.Anchored and p.Parent then -- vue FPS : les bobines tournent
 				local sens = (i % 2 == 0) and -1 or 1
 				local vitesse = (enRecharge and 0.4 or 1.6) + 9 * boost
 				p.CFrame = p.CFrame * CFrame.Angles(sens * vitesse * dt, 0, 0)
@@ -333,7 +392,17 @@ function EffetsSkins.AuTir(modeleArme, arme, depart, cible)
 	end
 	local s = arme and echelle(arme) or 1
 	if effet == "Inferno" then
-		rafale(depart, 8, {
+		rafale(depart, 6, {
+			Texture = TEX_FEU,
+			Lifetime = NumberRange.new(0.12, 0.25),
+			Speed = NumberRange.new(3, 6),
+			SpreadAngle = Vector2.new(25, 25),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35 * s), NumberSequenceKeypoint.new(1, 0.05 * s) }),
+			Color = ColorSequence.new(Color3.fromRGB(255, 190, 80), Color3.fromRGB(255, 70, 10)),
+			LightEmission = 1,
+			Drag = 6,
+		})
+		rafale(depart, 14, {
 			Texture = TEX_ETINCELLE,
 			Lifetime = NumberRange.new(0.2, 0.5),
 			Speed = NumberRange.new(4, 9),
