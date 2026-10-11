@@ -19,6 +19,7 @@ Et aussi :
 """
 import math
 import os
+import re
 import sys
 import zipfile
 
@@ -127,7 +128,8 @@ def bake(ob, design_img, path):
 # --------------------------------------------------------------- matériaux
 def assign_material(ob, skin, tex_path=None):
     name = ob.name
-    key = skin["palette"]["Gachette"] if name == "Trigger" else name.split("_")[-1]
+    # « CyanPulse07 » (segment de néon animé) -> couleur « CyanPulse »
+    key = skin["palette"]["Gachette"] if name == "Trigger" else re.sub(r"\d+$", "", name.split("_")[-1])
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -221,7 +223,7 @@ def build_skin(W, skin):
     os.makedirs(tex_dir, exist_ok=True)
     file = f"{W.file_prefix}_{name}"
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    objs = W.build()
+    objs = W.build(skin["pieces"].get(W.key))  # variante de modèle propre au skin (rares...)
 
     # dessin vue de côté (coordonnées monde)
     pts = [v.co for (g, r), ob in objs.items() if g != "Root" for v in ob.data.vertices]
@@ -270,8 +272,9 @@ def build_skin(W, skin):
             assign_material(ob, skin, tex.get(oname))
     final["Root"].hide_render = True
     for oname, ob in final.items():
-        key = oname.split("_")[-1]
-        if key == "Contour" or key.startswith("Verre") or key.startswith("Lentille"):  # pas d'ombre dans l'aperçu
+        key = re.sub(r"\d+$", "", oname.split("_")[-1])
+        neon = skins.COLORS.get(key, (0, 0, 0, False))[3]
+        if key == "Contour" or key.startswith("Verre") or key.startswith("Lentille") or neon:  # pas d'ombre
             ob.visible_shadow = ob.visible_diffuse = ob.visible_glossy = ob.visible_transmission = False
 
     center = ((x0 + x1) / 2, 0.0, (z0 + z1) / 2)
@@ -310,7 +313,18 @@ def write_installer():
     lines = []
     for name, (r, g, b, neon) in skins.COLORS.items():
         lines.append(f"\t{name} = {{ Color3.fromRGB({r}, {g}, {b}), {'true' if neon else 'false'} }},")
-    skin_lines = [f"\t{s['name']} = {{ Gachette = \"{s['palette']['Gachette']}\" }}," for s in skins.SKINS]
+    def lua(v):
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        if isinstance(v, tuple):
+            return f"Color3.fromRGB({v[0]}, {v[1]}, {v[2]})"
+        return f'"{v}"'
+
+    skin_lines = []
+    for s in skins.SKINS:
+        attrs = ", ".join(f"{k} = {lua(v)}" for k, v in s["effect"].items())
+        skin_lines.append(f"\t{s['name']} = {{ Gachette = \"{s['palette']['Gachette']}\", "
+                          f"Rarete = \"{s['rarity']}\", Attributs = {{ {attrs} }} }},")
     ordre = ", ".join(f'"{s["name"]}"' for s in skins.SKINS)
     arme_lines = []
     for W in WEAPONS.values():
@@ -331,17 +345,24 @@ def write_zip_and_gallery(W):
     from PIL import Image, ImageDraw, ImageFont
     wd = weapon_dir(W)
     tag = W.folder.replace("VANTA_", "")
-    zpath = os.path.join(wd, f"Skins_{tag}_FBX.zip")
+    groups = {f"Skins_{tag}_FBX.zip": lambda s: s["rarity"] == "Peu commun",
+              f"Skins_{tag}_RareEpiqueLegendaire_FBX.zip": lambda s: s["rarity"] != "Peu commun"}
     tiles = []
-    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+    for zname, keep in groups.items():
+        files = []
         for s in skins.SKINS:
             fbx = os.path.join(wd, s["name"], f"{W.file_prefix}_{s['name']}.fbx")
-            if os.path.exists(fbx) and s["name"] not in ZIP_EXCLUDE.get(W.key, ()):
-                z.write(fbx, os.path.basename(fbx))
-            prev = os.path.join(wd, s["name"], f"{W.file_prefix}_{s['name']}_preview.png")
-            if os.path.exists(prev):
-                tiles.append((s["name"], Image.open(prev).convert("RGB")))
-    print("ZIP", zpath)
+            if os.path.exists(fbx) and keep(s) and s["name"] not in ZIP_EXCLUDE.get(W.key, ()):
+                files.append(fbx)
+        if files:
+            with zipfile.ZipFile(os.path.join(wd, zname), "w", zipfile.ZIP_DEFLATED) as z:
+                for f in files:
+                    z.write(f, os.path.basename(f))
+            print("ZIP", os.path.join(wd, zname), len(files))
+    for s in skins.SKINS:
+        prev = os.path.join(wd, s["name"], f"{W.file_prefix}_{s['name']}_preview.png")
+        if os.path.exists(prev):
+            tiles.append((s["name"], s["rarity"], Image.open(prev).convert("RGB")))
     if not tiles:
         return
     tw, th = 800, 450
@@ -349,11 +370,15 @@ def write_zip_and_gallery(W):
     rows = math.ceil(len(tiles) / cols)
     g = Image.new("RGB", (tw * cols, th * rows), (12, 12, 15))
     f = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf", 40)
-    for i, (name, im) in enumerate(tiles):
-        im = im.resize((tw, th), Image.LANCZOS).crop((0, 0, tw, th))
+    f2 = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-Bold.otf", 26)
+    couleurs = {"Peu commun": (90, 220, 120), "Rare": (70, 150, 255), "Épique": (180, 90, 255), "Légendaire": (255, 190, 50)}
+    for i, (name, rar, im) in enumerate(tiles):
+        im = im.resize((tw, th), Image.LANCZOS)
         x, y = (i % cols) * tw, (i // cols) * th
         g.paste(im, (x, y))
-        ImageDraw.Draw(g).text((x + 24, y + 18), name.upper(), font=f, fill=(255, 255, 255))
+        dr = ImageDraw.Draw(g)
+        dr.text((x + 24, y + 18), name.upper(), font=f, fill=(255, 255, 255))
+        dr.text((x + 26, y + 66), rar.upper(), font=f2, fill=couleurs.get(rar, (200, 200, 200)))
     g.save(os.path.join(wd, "galerie.png"))
     print("GALERIE", os.path.join(wd, "galerie.png"))
 
@@ -371,7 +396,8 @@ def main():
         write_zip_and_gallery(W)
         return
     if "--installer" not in argv:
-        todo = [skins.BY_NAME[a.lower()] for a in args] if args else skins.SKINS
+        todo = [skins.BY_NAME[a.lower()] for a in args] if args else \
+            [s for s in skins.SKINS if s["weapons"] is None or W.key in s["weapons"]]
         for s in todo:
             build_skin(W, s)
         write_zip_and_gallery(W)

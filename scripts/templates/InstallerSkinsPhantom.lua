@@ -19,8 +19,12 @@
 	    (même boîte englobante), Root placé comme celui de la référence
 	  - centre le verre du viseur / de la lunette sur celui de la référence (Body_Cyan)
 	  - copie depuis la référence : Sons, autres objets, attributs, réglages des pièces, soudures
-	  - le nomme « <Arme> S 1 », 2, 3... (premier numéro libre, dans l'ordre du catalogue)
-	    (un skin déjà nommé « <Arme> S N » que l'on recale garde son nom)
+	  - le range dans le dossier de sa rareté (Armes.<Arme>.Peu commun / Rare / Épique /
+	    Légendaire, s'il existe) ; un Peu commun s'appelle « <Arme> S N » (premier numéro
+	    libre), les autres « <Arme> <Skin> » (ex. « Phantom Pulse »)
+	  - skins à effets : pose les attributs (Effet, NeonAnime, CouleurTraceur, CouleurFlamme,
+	    Inspection, EffetElimination) et le tag « EffetSkin » lus par le module EffetsSkins
+	  - néons à 60 % de luminosité (règle du jeu)
 
 	Fichier généré par scripts/build_skins.py : ne pas modifier les tables à la main.
 ]]
@@ -35,7 +39,8 @@ local ARMES = {
 local COULEURS = {
 --@@COULEURS@@
 }
--- skins connus (ordre du catalogue) : nom de la texture -> couleur de la gâchette
+-- skins connus (ordre du catalogue) : nom de la texture -> couleur de la gâchette, rareté,
+-- attributs posés sur le modèle (effets animés)
 local SKINS = {
 --@@SKINS@@
 }
@@ -44,6 +49,8 @@ local NOMS_GROUPES = { Corps = true, Chargeur = true, Gachette = true, Levier = 
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Selection = game:GetService("Selection")
+local CollectionService = game:GetService("CollectionService")
+local LUMINOSITE_NEON = 0.6 -- les néons du jeu sont à 60 % de luminosité
 local dossierArmes = ReplicatedStorage:FindFirstChild("Armes")
 
 -- ------------------------------------------------------------------ outils
@@ -172,10 +179,10 @@ local function infoArme(cle)
 	local def = ARMES[cle]
 	local dossier = dossierArmes and dossierArmes:FindFirstChild(def.dossier)
 	local prefixe = cle .. " S "
-	local reference = dossier and dossier:FindFirstChild(def.reference)
+	local reference = dossier and dossier:FindFirstChild(def.reference, true)
 	if dossier and not reference then
 		-- pas de « <Arme> P » : premier modèle du dossier qui ressemble à l'arme d'origine
-		for _, m in ipairs(dossier:GetChildren()) do
+		for _, m in ipairs(dossier:GetDescendants()) do
 			if m:IsA("Model") and m:FindFirstChild("Corps") and not m.Name:find("faire")
 				and not m.Name:match("^" .. prefixe .. "%d+$") and not skinDe(m) then
 				reference = m
@@ -242,7 +249,7 @@ local function installer(source)
 
 	for nom, part in pairs(pieces) do
 		local prefixe = nom:match("^(%a+)")
-		local couleur = nom:match("_(%a+)$") or gachette
+		local couleur = nom:match("_(%a+)%d*$") or gachette
 		local def = COULEURS[couleur]
 		local verre = couleur:match("^Verre") ~= nil
 		if prefixe and not GROUPES[prefixe] then
@@ -253,6 +260,10 @@ local function installer(source)
 			part.Color = Color3.new(1, 1, 1) -- pièce texturée : ne pas teinter
 		elseif def then
 			part.Color = def[1]
+			if def[2] then -- néon : luminosité réduite
+				local h, s, v = def[1]:ToHSV()
+				part.Color = Color3.fromHSV(h, s, v * LUMINOSITE_NEON)
+			end
 		end
 		part.Material = if def and def[2] then Enum.Material.Neon else Enum.Material.SmoothPlastic
 		part.Transparency = if verre then 0.75 else 0
@@ -374,21 +385,49 @@ local function installer(source)
 		end
 	end
 
-	-- 8) nom automatique : Phantom S 1, 2, 3... (le premier libre)
-	local nom = source.Name
-	if not (source.Parent == parent and nom:match("^" .. PREFIXE_NOM .. "%d+$")) then
-		local n = 1
-		while parent:FindFirstChild(PREFIXE_NOM .. n) do
-			n += 1
+	-- 8) attributs des skins à effets (lus par le module EffetsSkins) + tag
+	local infoSkin = skin and SKINS[skin]
+	if infoSkin and infoSkin.Attributs then
+		for cle, valeur in pairs(infoSkin.Attributs) do
+			arme:SetAttribute(cle, valeur)
 		end
-		nom = PREFIXE_NOM .. n
+		if infoSkin.Attributs.Effet then
+			CollectionService:AddTag(arme, "EffetSkin")
+		end
+	end
+
+	-- 9) rangement dans le dossier de la rareté + nom unique dans tout le dossier de l'arme
+	local rarete = infoSkin and infoSkin.Rarete or "Peu commun"
+	local destination = (I.dossier and I.dossier:FindFirstChild(rarete)) or parent
+	local function pris(n)
+		local trouve = (I.dossier or parent):FindFirstChild(n, true)
+		return trouve ~= nil and trouve ~= source
+	end
+	local nom = source.Name
+	local garde = (I.dossier and source:IsDescendantOf(I.dossier))
+		and (nom:match("^" .. PREFIXE_NOM .. "%d+$") or (skin and nom == cle .. " " .. skin))
+	if not garde then
+		if rarete == "Peu commun" then
+			local n = 1
+			while pris(PREFIXE_NOM .. n) do
+				n += 1
+			end
+			nom = PREFIXE_NOM .. n
+		else
+			nom = cle .. " " .. (skin or "Skin")
+			local n = 2
+			while pris(nom) do
+				nom = cle .. " " .. (skin or "Skin") .. " " .. n
+				n += 1
+			end
+		end
 	end
 	arme.Name = nom
-	arme.Parent = parent
+	arme.Parent = destination
 	source:Destroy()
 
-	print(string.format("[Skin] %s = %s %s | longueur %.3f -> %.3f studs | verre recentré (%.3f, %.3f)%s | soudures : %s",
-		nom, cle, skin or "?", longueurAvant, maTaille.X, decalageVerre.Y, decalageVerre.Z,
+	print(string.format("[Skin] %s = %s %s (%s, dans %s) | longueur %.3f -> %.3f studs | verre recentré (%.3f, %.3f)%s | soudures : %s",
+		nom, cle, skin or "?", rarete, destination:GetFullName(), longueurAvant, maTaille.X, decalageVerre.Y, decalageVerre.Z,
 		if not monVerre then " (pas de verre)" elseif refVerre then "" else " -- Body_Cyan introuvable",
 		tostring(soude)))
 	return arme
@@ -417,7 +456,7 @@ assert(#selection > 0, "Aucun skin à installer : sélectionne les modèles impo
 -- les skins déjà nommés « Phantom S N » d'abord (ils gardent leur numéro), puis l'ordre du catalogue
 local function dejaNomme(m)
 	local I = infoArme(armeDe(m))
-	return m.Parent == I.parent and m.Name:match("^" .. I.prefixe .. "%d+$") ~= nil
+	return I.dossier ~= nil and m:IsDescendantOf(I.dossier) and m.Name:match("^" .. I.prefixe .. "%d+$") ~= nil
 end
 table.sort(selection, function(a, b)
 	local ka = if dejaNomme(a) then 0 else 1

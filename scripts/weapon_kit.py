@@ -132,10 +132,13 @@ class Weapon:
         """Point du profil (studs design) -> mètres monde (origine poignée)."""
         return ((x - self.grip[0]) * STUD * self.scale.x, (z - self.grip[1]) * STUD * self.scale.z)
 
-    def build(self):
-        """Construit toutes les pièces. Renvoie {(groupe, rôle): objet}."""
+    def build(self, pieces_fn=None):
+        """Construit toutes les pièces. Renvoie {(groupe, rôle): objet}.
+
+        pieces_fn : autre liste de pièces (variante de modèle d'un skin), sinon celle de l'arme.
+        """
         objs = {}
-        for group, role, fn, bevel in self.pieces():
+        for group, role, fn, bevel in (pieces_fn or self.pieces)():
             key = (group, role)
             ob = _make(f"{group}_{role}", fn, bevel)
             if key in objs:  # même groupe + même rôle déclaré deux fois : on fusionne
@@ -149,7 +152,8 @@ class Weapon:
         """Contour noir par groupe (sans verre, lentille ni cadre). {groupe: objet}."""
         out = {}
         for prefix in self.groups:
-            src = [o for (g, r), o in objs.items() if g == prefix and r not in ("Verre", "Cadre", "Lentille")]
+            src = [o for (g, r), o in objs.items()
+                   if g == prefix and r not in ("Verre", "Cadre", "Lentille") and not r.startswith("Neon")]
             if src:
                 out[prefix] = _inverted_hull(f"{prefix}_Contour", src, self.contour * STUD)
         return out
@@ -166,6 +170,9 @@ class Weapon:
                 name = "Root"
             elif group == "Trigger":
                 name = "Trigger"
+            elif role.startswith("Neon"):
+                # néons animés : « Neon » = une pièce, « Neon07 » = 7e segment (pièce séparée)
+                name = f"{group}_{palette['Neon']}{role[4:]}"
             else:
                 color = palette["Accent" if role == "Cadre" else role]
                 name = f"{group}_{color}"

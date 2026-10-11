@@ -6,7 +6,7 @@ Chaque skin donne :
   - paint    : fonction(ctx) -> image PIL de la texture vue de côté
 Les couleurs nommées sont dans COLORS (reprises telles quelles par le script Roblox).
 """
-from . import arcade, cryo, fantome, graffiti, nebuleuse, royal, sakura, toxic, vortex
+from . import apex, arcade, cryo, fantome, graffiti, inferno, nebuleuse, pulse, royal, sakura, toxic, vortex
 
 # nom -> (r, g, b, neon)
 COLORS = {
@@ -32,6 +32,15 @@ COLORS = {
     "VioletNeon": (165, 75, 255, True),
     "CyanNeon": (50, 225, 255, True),
     "MagentaNeon": (255, 40, 205, True),
+    # skins rares / épiques / légendaires
+    "Carbone": (34, 37, 44, False),
+    "CyanPulse": (0, 225, 255, True),
+    "Lave": (255, 110, 20, True),
+    "OrangeBrule": (170, 60, 20, False),
+    "Graphite": (42, 44, 50, False),
+    "ApexNoyau": (150, 240, 255, True),
+    "VerreOrange": (255, 150, 60, False),
+    "LentilleOrange": (255, 130, 40, True),
     # lentilles de lunette (néon, opaques)
     "LentilleRose": (255, 120, 200, True),
     "LentilleViolet": (175, 100, 255, True),
@@ -50,5 +59,11 @@ COLORS = {
     "VerreBlanc": (232, 232, 242, False),
 }
 
-SKINS = [m.SKIN for m in (sakura, graffiti, royal, toxic, cryo, nebuleuse, vortex, arcade, fantome)]
+SKINS = [m.SKIN for m in (sakura, graffiti, royal, toxic, cryo, nebuleuse, vortex, arcade, fantome,
+                          pulse, inferno, apex)]
+for _s in SKINS:  # valeurs par défaut (skins Peu commun, sur toutes les armes)
+    _s.setdefault("rarity", "Peu commun")
+    _s.setdefault("weapons", None)
+    _s.setdefault("pieces", {})
+    _s.setdefault("effect", {})
 BY_NAME = {s["name"].lower(): s for s in SKINS}

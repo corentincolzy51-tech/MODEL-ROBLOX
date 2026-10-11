@@ -50,6 +50,18 @@ Chaque skin : `weapons/VANTA_AR-01/<Skin>/Phantom_<Skin>.fbx` (+ `.blend`, textu
 Les 8 nouveaux FBX d'un coup : `weapons/VANTA_AR-01/Skins_AR-01_FBX.zip` (Sakura, déjà installé en
 `Phantom S 1`, n'y est pas ; son FBX reste dans `Sakura/`).
 
+## Skins Rare / Épique / Légendaire (test sur la VANTA AR-01)
+
+| Skin | Rareté | Modèle | Effets (module `roblox/EffetsSkins.lua`) |
+|---|---|---|---|
+| Pulse | Rare | Phantom + 16 segments néon | onde de lumière, éclat au tir, rallumage au rechargement |
+| Inferno | Épique | Phantom + fissures de lave, ailettes, cache-flamme | lave qui pulse, braises, étincelles au tir, fumée |
+| Apex | Légendaire | modèle exclusif (crosse squelette, noyau, anneaux) | noyau, anneaux qui tournent, inspection F, effet d'élimination |
+
+- FBX : `weapons/VANTA_AR-01/Skins_AR-01_RareEpiqueLegendaire_FBX.zip`
+- Intégration dans les scripts du jeu : `roblox/INTEGRATION_EFFETS.md` (réponse à `roblox/BRIEFING_SKINS_RARES.md`)
+- Variantes de modèle : `scripts/phantom_variants.py` ; skins : `scripts/skins/pulse.py`, `inferno.py`, `apex.py`
+
 ## Autres armes (skin Sakura)
 
 | Arme | Dossier Roblox | Structure | FBX |
