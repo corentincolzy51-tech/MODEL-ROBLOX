@@ -413,7 +413,8 @@ def uv_unwrap(ob):
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.004,
                              area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
-    bpy.ops.uv.pack_islands(margin=0.004, rotate=True, shape_method="CONCAVE")
+    bpy.context.scene.tool_settings.use_uv_select_sync = True   # sinon pack_islands ignore les îlots
+    bpy.ops.uv.pack_islands(margin=0.004, rotate=True, shape_method="CONVEX")
     bpy.ops.object.mode_set(mode="OBJECT")
 
 

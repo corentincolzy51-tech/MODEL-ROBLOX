@@ -68,7 +68,7 @@ def build():
     cx, cz, ro, ri = RING
 
     # ------------------------------------------------------------ acier : lame + soie + anneau (une pièce)
-    bl = Part("Body", "Lame", "Lame", bevel=0.004, segs=2, angle=40)
+    bl = Part("Body", "Lame", "Lame", bevel=0)   # pas de biseau : il replie la lame fine sur elle-même
     bl.loft(blade_sections())
     # soie (manche) : profil du manche, pleine épaisseur
     bl.prism(HANDLE_TOP + [(0.70, 0.415), (0.78, 0.36), (0.80, 0.27), (0.76, 0.215)] + HANDLE_BOT +
