@@ -87,10 +87,10 @@ def studio(center, size, dark=True):
         lo.rotation_euler = (c - lo.location).to_track_quat("-Z", "Y").to_euler()
         return lo
 
-    light((0.0, 0.9, 1.3), 90, 1.6, 0.5)                    # boîte à lumière au-dessus
+    light((0.0, 0.9, 1.3), 55, 1.6, 0.5)                    # boîte à lumière au-dessus
     light((-1.2, 1.0, 0.3), 35, 0.4, 1.2, (1.0, 0.95, 0.9))  # bande arrière gauche
     light((1.3, -0.8, 0.5), 40, 0.4, 1.2, (0.85, 0.92, 1.0))  # contre-jour droit
-    light((0.2, 1.6, -0.4), 12, 1.5, 0.6)                    # débouchage bas
+    light((0.2, 1.6, -0.4), 8, 1.5, 0.6)                    # débouchage bas
     sc.view_settings.view_transform = "AgX"
     sc.view_settings.look = "AgX - Medium High Contrast"
 

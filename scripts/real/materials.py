@@ -26,7 +26,7 @@ FONTS = {
 # bump : grain | brushed | stipple | rubber | g10 | cast | none
 MATS = {
     "AnodiseNoir": dict(kind="coated", color=(0.030, 0.031, 0.034), metal=0.85, rough=0.40,
-                        wear=(0.30, 0.30, 0.31), wear_amt=0.45, bump="grain", bump_s=0.25),
+                        wear=(0.20, 0.20, 0.21), wear_amt=0.45, bump="grain", bump_s=0.25),
     "CerakoteNoir": dict(kind="coated", color=(0.024, 0.024, 0.026), metal=0.0, rough=0.66,
                          wear=(0.30, 0.30, 0.31), wear_amt=0.45, bump="grain", bump_s=0.35),
     "CerakoteFDE": dict(kind="coated", color=(0.36, 0.27, 0.17), metal=0.0, rough=0.62,
@@ -360,7 +360,7 @@ def procedural(ob, part, mask_image=None):
     color = g.mix(g.math("MULTIPLY", dirt, 0.55), color, (0.012, 0.011, 0.010))
     rough = g.lerp(g.math("MULTIPLY", dirt, 0.6), rough, 0.85)
     if grav is not None:
-        fill = (0.16, 0.16, 0.165) if kind in ("coated", "poly") else (0.10, 0.10, 0.10)
+        fill = (0.085, 0.085, 0.09) if kind in ("coated", "poly") else (0.10, 0.10, 0.10)
         color = g.mix(g.math("MULTIPLY", grav, 0.75), color, fill)
         rough = g.lerp(grav, rough, 0.75)
         if kind == "coated":
