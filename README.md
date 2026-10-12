@@ -30,6 +30,17 @@ Phantom <Skin> (Model)  -> renommé « Phantom S N » par le script
 avec **1 unité = 1 stud**, à importer avec *Scale Unit = Stud*. (Un FBX Blender par
 défaut est lu par Roblox comme 1 m = 100 studs : c'est ce qui donnait une arme géante.)
 
+## Armes réalistes (haute qualité)
+
+![Armes réalistes](weapons/Realiste/galerie_realiste.png)
+
+Fusil rapide, deagle, sniper et karambit : modèles réalistes sans contour, textures PBR cuites
+(couleur, rugosité, métal, normales), animations par images clés. Même gabarit que les armes du jeu.
+
+- FBX : `weapons/Realiste/Armes_Realistes_FBX.zip` (ou `weapons/Realiste/<Arme>/<Arme>_Realiste.fbx`)
+- Installation : `roblox/InstallerArmesRealistes.lua` ; animations : `roblox/AnimationsRealistes.lua`
+- Mode d'emploi complet : `roblox/ARMES_REALISTES.md` ; sources : `scripts/real/`
+
 ## Skins de la VANTA AR-01
 
 ![Galerie](weapons/VANTA_AR-01/galerie.png)
