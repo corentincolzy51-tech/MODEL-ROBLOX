@@ -1,0 +1,54 @@
+{
+ "attaches": {},
+ "name": "Deagle",
+ "label": "DE-50",
+ "size": [
+  1.3095940351486206,
+  0.2160000056028366,
+  0.9270000457763672
+ ],
+ "center": [
+  0.46020299196243286,
+  0.0,
+  0.13849999010562897
+ ],
+ "triangles": 11744,
+ "parts": {
+  "Body_Canon": 2712,
+  "Body_Carcasse": 1340,
+  "Body_Acier": 1428,
+  "Body_Plaquettes": 780,
+  "ChargingHandle_Culasse": 3800,
+  "ChargingHandle_Verrou": 212,
+  "Body_Tritium": 108,
+  "Body_Guidon": 120,
+  "Magazine_Chargeur": 772,
+  "Magazine_Cartouche": 288,
+  "Trigger": 184
+ },
+ "materials": {
+  "Body_Canon": "Inox",
+  "Body_Carcasse": "CerakoteNoir",
+  "Body_Acier": "AcierNoir",
+  "Body_Plaquettes": "Caoutchouc",
+  "ChargingHandle_Culasse": "Inox",
+  "ChargingHandle_Verrou": "AcierNoir",
+  "Body_Tritium": "Tritium",
+  "Body_Guidon": "AcierNoir",
+  "Magazine_Chargeur": "AcierNoir",
+  "Magazine_Cartouche": "Laiton",
+  "Trigger": "AcierNoir"
+ },
+ "groups": [
+  "Body",
+  "ChargingHandle",
+  "Magazine",
+  "Trigger"
+ ],
+ "decalage": [
+  0.032831400632858276,
+  -0.012813165783882141,
+  -0.0014999955892562866
+ ],
+ "length": 1.3095940351486206
+}
