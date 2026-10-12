@@ -57,8 +57,6 @@ Il faut copier `roblox/AnimationsRealistes.lua` dans un nouveau **ModuleScript**
 | Sniper | Tir, **Culasse** (réarmement après chaque tir : lever, tirer, pousser, rabattre), Recharge, Equiper, Inspection |
 | Couteau | Equiper (1,5 tour autour de l'anneau), Inspection (tours de lame), Attaque, Attaque2, AttaqueLourde |
 
-Les aperçus animés sont dans `weapons/Realiste/<Arme>/anim_*.gif`.
-
 Voici comment l'utiliser dans ArmeFPS. Tout se fait à l'intérieur des fonctions existantes, **sans nouvelle `local` au niveau principal** (limite des 200 variables).
 
 ```lua
@@ -91,7 +89,7 @@ Si une animation va dans le mauvais sens dans le jeu, il suffit d'inverser le si
 python3 scripts/real/build_real.py rifle deagle sniper karambit   # modèles + textures + aperçus + FBX + installateur
 python3 scripts/real/build_real.py rifle --nobake --fast          # aperçu rapide de la géométrie
 python3 scripts/real/anims.py                                     # module d'animations
-python3 scripts/real/preview_anim.py Phantom:Recharge             # GIF d'une animation
+python3 scripts/real/preview_anim.py Phantom:Recharge             # GIF d'une animation (facultatif)
 ```
 
 Fichiers sources :
