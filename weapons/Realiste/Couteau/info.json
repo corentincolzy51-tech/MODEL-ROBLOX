@@ -1,0 +1,44 @@
+{
+ "attaches": {
+  "Anneau": {
+   "piece": "Body_Lame",
+   "position": [
+    -0.6686526536941528,
+    0.1477401852607727,
+    -0.0
+   ]
+  }
+ },
+ "name": "Couteau",
+ "label": "KARAMBIT",
+ "size": [
+  1.5873053073883057,
+  0.10600000619888306,
+  0.5745196342468262
+ ],
+ "center": [
+  0.33365264534950256,
+  0.0,
+  -0.1427401900291443
+ ],
+ "triangles": 4452,
+ "parts": {
+  "Body_Lame": 1112,
+  "Body_Manche": 2488,
+  "Body_Vis": 852
+ },
+ "materials": {
+  "Body_Lame": "Lame",
+  "Body_Manche": "G10",
+  "Body_Vis": "AcierNoir"
+ },
+ "groups": [
+  "Body"
+ ],
+ "decalage": [
+  0.021528348326683044,
+  -0.14074018597602844,
+  -0.0
+ ],
+ "length": 1.5873053073883057
+}
