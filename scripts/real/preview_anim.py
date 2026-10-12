@@ -23,8 +23,8 @@ import anims  # noqa: E402
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MODULES = {"Phantom": "rifle", "Deagle": "deagle", "Sniper": "sniper", "Couteau": "karambit"}
 # position de repos de la poignée dans le repère caméra (studs) et champ de vision vertical
-REST = {"Phantom": (0.62, -0.62, -1.55), "Deagle": (0.42, -0.42, -1.05),
-        "Sniper": (0.62, -0.62, -1.75), "Couteau": (0.48, -0.48, -1.0)}
+REST = {"Phantom": (0.55, -0.50, -1.45), "Deagle": (0.36, -0.30, -0.95),
+        "Sniper": (0.55, -0.50, -1.65), "Couteau": (0.32, -0.26, -0.80)}
 REST_ROT = {"Phantom": (0, 4, 0), "Deagle": (0, 4, 0), "Sniper": (0, 4, 0), "Couteau": (-6, 10, 0)}
 FOV = 62
 
@@ -106,9 +106,9 @@ def setup(weapon):
         lo.data.energy, lo.data.size, lo.data.color = energy, size, color
         lo.rotation_euler = (Vector((0.4, -0.5, -1.4)) - lo.location).to_track_quat("-Z", "Y").to_euler()
 
-    light((-1.2, 1.6, 0.6), 160, 1.6)
-    light((2.0, 0.4, -0.6), 60, 1.0, (0.85, 0.92, 1.0))
-    light((0.0, -1.5, -0.5), 25, 2.0)
+    light((-1.2, 1.6, 0.6), 420, 1.6)
+    light((2.0, 0.4, -0.6), 160, 1.0, (0.85, 0.92, 1.0))
+    light((0.0, -1.5, -0.5), 60, 2.0)
     model = next(o for o in bpy.data.objects if o.type == "EMPTY" and o.parent is None)
     groups = {o.name: o for o in bpy.data.objects if o.type == "EMPTY" and o.parent == model}
     return model, groups

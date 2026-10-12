@@ -1,0 +1,62 @@
+{
+ "attaches": {},
+ "name": "Phantom",
+ "label": "AR-01",
+ "size": [
+  3.615999937057495,
+  0.32927238941192627,
+  1.3459999561309814
+ ],
+ "center": [
+  0.6430000066757202,
+  0.0,
+  0.25300002098083496
+ ],
+ "triangles": 38164,
+ "parts": {
+  "Body_Carcasse": 4230,
+  "Body_Acier": 3194,
+  "Body_Bas": 1492,
+  "Body_Poignee": 1480,
+  "Body_Crosse": 3070,
+  "Body_Talon": 1444,
+  "Body_Tube": 2150,
+  "Body_Garde": 8322,
+  "Body_Canon": 4652,
+  "Body_Optique": 4002,
+  "Body_Verre": 96,
+  "Body_Reticule": 256,
+  "Magazine_Chargeur": 2908,
+  "Trigger": 184,
+  "ChargingHandle_Levier": 684
+ },
+ "materials": {
+  "Body_Carcasse": "AnodiseNoir",
+  "Body_Acier": "AcierNoir",
+  "Body_Bas": "AnodiseNoir",
+  "Body_Poignee": "PolymereNoir",
+  "Body_Crosse": "PolymereNoir",
+  "Body_Talon": "Caoutchouc",
+  "Body_Tube": "AnodiseNoir",
+  "Body_Garde": "AnodiseNoir",
+  "Body_Canon": "AcierNoir",
+  "Body_Optique": "CerakoteNoir",
+  "Body_Verre": "Verre",
+  "Body_Reticule": "Tritium",
+  "Magazine_Chargeur": "PolymereNoir",
+  "Trigger": "AcierNoir",
+  "ChargingHandle_Levier": "AnodiseNoir"
+ },
+ "groups": [
+  "Body",
+  "ChargingHandle",
+  "Magazine",
+  "Trigger"
+ ],
+ "decalage": [
+  0.005000054836273193,
+  0.0015000402927398682,
+  -0.0
+ ],
+ "length": 3.615999937057495
+}
