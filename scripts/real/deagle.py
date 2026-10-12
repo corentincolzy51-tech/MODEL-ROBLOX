@@ -44,7 +44,7 @@ def build():
     br.cut_lathe([(-0.02, 0.0), (0.0, 0.045), (0.02, 0.045)], "X", (1.255, 0, BORE), 20)  # couronne
     # vis de démontage + guidon
     br.engrave(".50 AE", 1.14, 0.69, 0.034, 1, "sans")
-    br.engrave("VANTA ARMS - DE-50", 1.0, 0.69, 0.022, -1, "cond")
+    br.engrave("VANTA ARMS - DE-50", 0.64, 0.69, 0.022, -1, "cond")
     P.append(br)
 
     # ------------------------------------------------------------ carcasse (noire)
@@ -61,7 +61,7 @@ def build():
     fr.cut_prism(rect(0.37, 0.545, 0.565, 0.58), 0.02)                              # fente de la gâchette
     fr.cut_box(0.80, 0.98, 0.60, 0.63, 0.2, 0.074)                                  # rainures de la carcasse
     fr.cut_box(0.80, 0.98, 0.60, 0.63, -0.074, -0.2)
-    fr.engrave("VANTA", 0.92, 0.585, 0.02, -1, "cond")
+    fr.engrave("VANTA", 0.80, 0.59, 0.02, -1, "cond")
     fr.engrave("SN DE 0050", 0.32, 0.585, 0.016, -1, "mono")
     P.append(fr)
 
@@ -140,7 +140,7 @@ def build():
              0.07)                                                                     # semelle
     mg.cut_box(0.02, 0.20, 0.025, 0.05, 0.2, 0.066)
     mg.cut_box(0.02, 0.20, 0.025, 0.05, -0.066, -0.2)
-    mg.engrave("VANTA .50", 0.19, 0.03, 0.02, -1, "cond")
+    mg.engrave("VANTA .50", 0.03, 0.028, 0.018, -1, "cond")
     P.append(mg)
     am = Part("Magazine", "Cartouche", "Laiton", bevel=0.002)
     am.lathe([(0.06, 0.0), (0.06, 0.026), (0.07, 0.03), (0.16, 0.03), (0.175, 0.026), (0.215, 0.016), (0.225, 0.0)],

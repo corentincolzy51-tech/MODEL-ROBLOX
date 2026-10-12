@@ -219,7 +219,7 @@ def build_weapon(key, bake=True, fast=False):
         ("apercu_droite", (0.45, -1.0, 0.18), 1.6, 0.0),
     ]
     for name, direction, dist, roll in views:
-        cam = camera(center, direction, max(L, 2.4 * size.z) * dist * 1.25, lens=50, roll=roll)
+        cam = camera(center, direction, max(L, 1.6 * size.z) * dist * 1.1, lens=50, roll=roll)
         render(os.path.join(out, f"{W.NAME}_{name}.png"), res, samples)
         bpy.data.objects.remove(cam)
     if hasattr(W, "CLOSEUPS"):
