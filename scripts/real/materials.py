@@ -29,7 +29,7 @@ MATS = {
                         wear=(0.20, 0.20, 0.21), wear_amt=0.45, bump="grain", bump_s=0.25),
     "CerakoteNoir": dict(kind="coated", color=(0.024, 0.024, 0.026), metal=0.0, rough=0.66,
                          wear=(0.30, 0.30, 0.31), wear_amt=0.45, bump="grain", bump_s=0.35),
-    "CerakoteFDE": dict(kind="coated", color=(0.36, 0.27, 0.17), metal=0.0, rough=0.62,
+    "CerakoteFDE": dict(kind="coated", color=(0.27, 0.19, 0.11), metal=0.0, rough=0.62,
                         wear=(0.42, 0.42, 0.43), wear_amt=0.50, bump="grain", bump_s=0.35),
     "CerakoteGris": dict(kind="coated", color=(0.13, 0.135, 0.14), metal=0.0, rough=0.58,
                          wear=(0.45, 0.45, 0.47), wear_amt=0.45, bump="grain", bump_s=0.35),
@@ -49,7 +49,7 @@ MATS = {
                  wear=(0.75, 0.75, 0.76), wear_amt=0.3, bump="stonewash", bump_s=0.3),
     "LameNoire": dict(kind="coated", color=(0.05, 0.05, 0.055), metal=0.8, rough=0.36,
                       wear=(0.62, 0.62, 0.63), wear_amt=0.7, bump="stonewash", bump_s=0.3),
-    "G10": dict(kind="poly", color=(0.035, 0.04, 0.036), metal=0.0, rough=0.70,
+    "G10": dict(kind="poly", color=(0.022, 0.024, 0.022), metal=0.0, rough=0.70,
                 wear=(0.10, 0.11, 0.10), wear_amt=0.5, bump="g10", bump_s=0.8),
     "Laiton": dict(kind="metal", color=(0.72, 0.52, 0.24), metal=1.0, rough=0.32,
                    wear=(0.85, 0.66, 0.36), wear_amt=0.4, bump="brushed", bump_s=0.15),
@@ -333,15 +333,15 @@ def procedural(ob, part, mask_image=None):
         micro = g.math("MULTIPLY", g.noise(stretched.outputs[0], 5.0, 6.0, 0.7), 0.5)
         rough = g.math("ADD", rough, g.math("MULTIPLY", g.math("SUBTRACT", micro, 0.25), 0.25))
     elif bump_kind == "stonewash":
-        sw = g.voronoi(co, 55.0, "F1", "Distance")
-        micro = g.math("MULTIPLY", g.maprange(sw, 0.0, 0.25, 1.0, 0.0), 0.5)
+        sw = g.voronoi(co, 150.0, "F1", "Distance")
+        micro = g.math("MULTIPLY", g.maprange(sw, 0.0, 0.3, 1.0, 0.0), 0.25)
         rough = g.math("ADD", rough, g.math("MULTIPLY", g.noise(co, 30.0, 4.0, 0.6), 0.12))
     elif bump_kind == "rubber":
         micro = g.math("MULTIPLY", g.voronoi(co, 160.0, "SMOOTH_F1", "Distance"), 0.8)
     elif bump_kind == "g10":
         n1 = g.noise(co, 25.0, 8.0, 0.75)
         micro = g.math("MULTIPLY", g.maprange(n1, 0.45, 0.62), 0.9)
-        color = g.mix(g.math("MULTIPLY", g.maprange(n1, 0.45, 0.6), 0.35), color, (0.09, 0.1, 0.09))
+        color = g.mix(g.math("MULTIPLY", g.maprange(n1, 0.45, 0.6), 0.35), color, (0.05, 0.055, 0.05))
     if micro is not None:
         micro = g.math("MULTIPLY", micro, spec.get("bump_s", 0.3))
         height = micro if height is None else g.math("ADD", height, micro)
