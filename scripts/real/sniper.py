@@ -88,7 +88,7 @@ def build():
     sk.engrave("VANTA", 0.80, 0.72, 0.04, 1, "sans")
     P.append(sk)
 
-    pad = Part("Body", "Talon", "Caoutchouc", bevel=0.012, segs=3)
+    pad = Part("Body", "Talon", "Caoutchouc", bevel=0.005, segs=2)
     pad.prism(rounded(0.0, 0.26, 0.075, 0.96, 0.03), 0.118)
     for z in [0.30 + 0.05 * i for i in range(13)]:
         pad.cut_box(-0.05, 0.012, z, z + 0.018, 0.2)
