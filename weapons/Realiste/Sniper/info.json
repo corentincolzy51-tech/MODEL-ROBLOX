@@ -1,0 +1,69 @@
+{
+ "attaches": {
+  "Verrou": {
+   "piece": "ChargingHandle_Culasse",
+   "position": [
+    5.960464477539063e-08,
+    0.01884099841117859,
+    -0.1153581365942955
+   ]
+  }
+ },
+ "name": "Sniper",
+ "label": "SR-7",
+ "size": [
+  4.861999988555908,
+  0.5520000457763672,
+  1.2799999713897705
+ ],
+ "center": [
+  1.1959998607635498,
+  -0.10600001364946365,
+  0.3999999761581421
+ ],
+ "triangles": 43752,
+ "parts": {
+  "Body_Chassis": 9276,
+  "Body_Crosse": 1280,
+  "Body_Talon": 1900,
+  "Body_Polymere": 2408,
+  "Body_Boitier": 5478,
+  "Body_Canon": 3408,
+  "Body_Lunette": 12962,
+  "Body_Colliers": 3508,
+  "Body_Lentille": 272,
+  "Body_Bipied": 812,
+  "Magazine_Chargeur": 516,
+  "Trigger": 168,
+  "ChargingHandle_Culasse": 1112,
+  "ChargingHandle_Boule": 652
+ },
+ "materials": {
+  "Body_Chassis": "CerakoteFDE",
+  "Body_Crosse": "CerakoteFDE",
+  "Body_Talon": "Caoutchouc",
+  "Body_Polymere": "PolymereNoir",
+  "Body_Boitier": "AcierNoir",
+  "Body_Canon": "AcierNoir",
+  "Body_Lunette": "AnodiseNoir",
+  "Body_Colliers": "AcierNoir",
+  "Body_Lentille": "VerreLunette",
+  "Body_Bipied": "CerakoteNoir",
+  "Magazine_Chargeur": "AcierNoir",
+  "Trigger": "AcierNoir",
+  "ChargingHandle_Culasse": "AcierBrut",
+  "ChargingHandle_Boule": "PolymereNoir"
+ },
+ "groups": [
+  "Body",
+  "ChargingHandle",
+  "Magazine",
+  "Trigger"
+ ],
+ "decalage": [
+  0.004999756813049316,
+  0.01773679256439209,
+  0.012500010430812836
+ ],
+ "length": 4.861999988555908
+}
